@@ -41,30 +41,33 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 	int type;
 	int8 encoding;
 
-	printf("%p(%d) %s\t", vm->memory->data + process->pc, process->internal_id, process->current_opcode->mnemonique);
-	switch (process->current_opcode->code)
+	if (process->current_opcode->code)
 	{
-	case 1:
-		printf("%d", vm_debug_read_value(process, &offset, POC_DIR));
-		break;
-	case 9:
-	case 12:
-	case 15:
-		printf("%d", vm_debug_read_value(process, &offset, POC_IND));
-		break;
-	default:
-		offset = 2;
-		encoding = read_int8_le(process->instruction + 1);
-		for (int i = 0; i < process->current_opcode->nbr_args; ++i)
+		printf("%p(%d) %s\t", vm->memory->data + process->pc, process->internal_id, process->current_opcode->mnemonique);
+		switch (process->current_opcode->code)
 		{
-			type = (encoding >> offset_encoding) & 3;
-			printf("%c%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
-			offset_encoding -= 2;
-			if (i < (process->current_opcode->nbr_args - 1))
-				printf(",");
+		case 1:
+			printf("%d", vm_debug_read_value(process, &offset, POC_DIR));
+			break;
+		case 9:
+		case 12:
+		case 15:
+			printf("%d", vm_debug_read_value(process, &offset, POC_IND));
+			break;
+		default:
+			offset = 2;
+			encoding = read_int8_le(process->instruction + 1);
+			for (int i = 0; i < process->current_opcode->nbr_args; ++i)
+			{
+				type = (encoding >> offset_encoding) & 3;
+				printf("%c%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
+				offset_encoding -= 2;
+				if (i < (process->current_opcode->nbr_args - 1))
+					printf(",");
+			}
+			break;
 		}
-		break;
-	}
 
-	printf("\n");
+		printf("\n");
+	}
 }
