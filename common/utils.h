@@ -13,6 +13,6 @@
 #	define _lseek lseek
 #endif
 
-char* file_to_memory(char* file_name);
+char* file_to_memory(char* file_name, int* size);
 
 #endif

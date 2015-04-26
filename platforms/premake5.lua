@@ -20,6 +20,7 @@ project "vm"
 	includedirs {"../externals/glfw/include",
 	"../externals/glew/include",
 	"../externals/glm",
+	"../externals/stb",
 	"../common"}
 
 	floatingpoint "Fast"
@@ -29,6 +30,7 @@ project "vm"
 
 	os.mkdir("../build")
 	os.copydir("../vm/shaders", "../build/shaders")
+	os.copydir("../vm/data", "../build/data")
 
 	defines { "GLEW_STATIC", "GLM_FORCE_RADIANS" }
 
