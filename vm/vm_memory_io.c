@@ -3,8 +3,6 @@
 #include "vm.h"
 #include "memory.h"
 
-// only access to VM memory need to be wrapped, the other function
-// are working within the process instruction buffer.
 void write_int8_le_vm(struct s_vm* vm, int32 offset, int8 value)
 {
 	while (offset < 0) offset += MEM_SIZE;

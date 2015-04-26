@@ -21,6 +21,13 @@ typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst
 
 #define PROCESS_INSTRUCTION_BUFFER_SIZE 64
 #define VM_MAX_PROCESSES				65535
+#define VM_MAX_CORES					4
+
+#define VM_ERROR_ENCODING	-1
+#define VM_ERROR_OPCODE		-2
+#define VM_ERROR_REGISTER	-3
+
+#define VM_OK			1
 
 typedef struct s_process
 {
@@ -64,19 +71,27 @@ typedef struct s_vm
 	t_process**		processes_pool;
 	int				process_pool_count;
 	int				process_counter;
+
+	struct s_core**	cores;
+	int				core_count;
 } t_vm;
 
+//////////////////////////////////////////////////////////////////////////
 // in vm_process.c
 void		vm_kill_process_if_no_live(t_vm* vm);
 void		vm_clean_dead_process(t_vm* vm);
 t_process*	vm_create_process(t_vm* vm, t_process* parent, int pc);
 t_process*	vm_add_core(t_vm* vm, struct s_core* core, int32 core_id, int32 offset);
-// in vm_debug.c
-void vm_debug_print_command(t_vm* vm, t_process* process);
+
 //////////////////////////////////////////////////////////////////////////
+// in vm_debug.c
+void		vm_debug_print_command(t_vm* vm, t_process* process);
+
+//////////////////////////////////////////////////////////////////////////
+// in vm.c
 t_vm*		vm_initialize();
 void		vm_destroy(t_vm* vm);
 t_op*		vm_get_opcode(t_vm* vm, t_process* process);
-void		vm_execute(t_vm* vm, t_process* process);
+int			vm_execute(t_vm* vm, t_process* process);
 
 #endif

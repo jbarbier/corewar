@@ -19,7 +19,7 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int pc)
 
 	process->pc = pc;
 	process->internal_id = vm->process_counter++;
-
+	process->cycle_live = vm->cycle_current;
 	vm_get_opcode(vm, process);
 	vm->processes[vm->process_count++] = process;
 
@@ -49,12 +49,19 @@ void vm_destroy_process(t_vm* vm, t_process* process)
 
 t_process*	vm_add_core(t_vm* vm, struct s_core* core, int32 core_id, int32 offset)
 {
-
 	int8* core_code = core_get_code_ptr(core);
-	vm->write_copy(vm, offset, core_code, core->header.prog_size);
-	t_process* process = vm_create_process(vm, NULL, offset);
-	process->reg[0] = core_id;
-	process->core_id = core_id;
+	t_process* process = NULL;
+
+	if (vm->core_count < VM_MAX_CORES)
+	{
+		vm->write_copy(vm, offset, core_code, core->header->prog_size);
+		process = vm_create_process(vm, NULL, offset);
+		process->reg[0] = core_id;
+		process->core_id = core_id;
+		core->id = core_id;
+		vm->cores[vm->core_count++] = core;
+	}
+
 	return process;
 }
 

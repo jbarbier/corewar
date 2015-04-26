@@ -1,5 +1,7 @@
 #include <stdlib.h>
 
+#include <GLFW/glfw3.h>
+
 #include "memory.h"
 #include "core.h"
 #include "vm.h"

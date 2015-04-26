@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdarg.h>
 #include "vm.h"
 #include "vm_memory_io.h"
 #include "memory.h"
@@ -26,24 +27,40 @@ int32 vm_debug_read_value(t_process* process, int32* offset, int32 type)
 	return ret;
 }
 
-char vm_debug_get_param_desc(int32 type)
+char* vm_debug_get_param_desc(int32 type)
 {
 	if (type == POC_DIR)
-		return '%';
+		return "%";
 	else if (type == POC_IND)
-		return ' ';
-	return 'r';
+		return "";
+	return "r";
 }
+void vm_printf(int max_size, char* format, ...)
+{
+	va_list args;
+	char	buffer[256];
+	int		size = 0;
+
+	va_start(args, format);
+	size = vsprintf(buffer, format, args);
+	va_end(args);
+	size = max_size - size;
+	if (size < 0) size = 0;
+	printf("%s%*s", buffer, size, " ");
+}
+
 void vm_debug_print_command(t_vm* vm, t_process* process)
 {
 	int offset_encoding = 6;
 	int offset = 1;
 	int type;
 	int8 encoding;
+	int32 special = 0;
 
+	vm_printf(15, "%p(%d)", vm->memory->data + process->pc, process->internal_id);
 	if (process->current_opcode->code)
 	{
-		printf("%p(%d) %s\t", vm->memory->data + process->pc, process->internal_id, process->current_opcode->mnemonique);
+		vm_printf(8, "%s", process->current_opcode->mnemonique);
 		switch (process->current_opcode->code)
 		{
 		case 1:
@@ -54,13 +71,19 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 		case 15:
 			printf("%d", vm_debug_read_value(process, &offset, POC_IND));
 			break;
+		case 10:
+		case 11:
+		case 14:
+			special = 1;
+			// special case : sti, ldi, lldi direct values 16 bits.
 		default:
 			offset = 2;
 			encoding = read_int8_le(process->instruction + 1);
 			for (int i = 0; i < process->current_opcode->nbr_args; ++i)
 			{
 				type = (encoding >> offset_encoding) & 3;
-				printf("%c%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
+				if (special && type == POC_DIR) type = POC_IND;
+				printf("%s%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
 				offset_encoding -= 2;
 				if (i < (process->current_opcode->nbr_args - 1))
 					printf(",");
@@ -70,4 +93,6 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 
 		printf("\n");
 	}
+	else
+		printf("nop\n");
 }
