@@ -11,7 +11,7 @@
 int main(int ac, char** av)
 {
 	t_core*		core	= core_load_from_file(av[1]);
-	t_vm*		vm	= vm_initialize();
+	t_vm*		vm		= vm_initialize();
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
 	int32		i;
 	t_display*  display;

@@ -4,6 +4,7 @@ uniform mat4	uni_ProjectionMatrix;
 uniform vec2	uni_Coord[4];
 
 in	vec4		in_Position;
+in  float		in_Value;
 out vec2		vertexShader_UV;
 
 void main(void) 
