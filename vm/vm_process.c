@@ -4,7 +4,7 @@
 #include "core.h"
 #include "op.h"
 
-t_process*	vm_create_process(t_vm* vm, t_process* parent, int pc)
+t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 {
 	t_process* process = NULL;
 	if (vm->process_pool_count > 0)
@@ -67,7 +67,8 @@ t_process*	vm_add_core(t_vm* vm, struct s_core* core, int32 core_id, int32 offse
 
 void	vm_kill_process_if_no_live(t_vm* vm)
 {
-	for (int i = 0; i < vm->process_count; ++i)
+	int32 i = 0;
+	for (; i < vm->process_count; ++i)
 	{
 		if (vm->processes[i]->cycle_live == 0)
 			vm_destroy_process(vm, vm->processes[i]);

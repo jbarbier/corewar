@@ -1,6 +1,11 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <io.h>
+
+#if defined(_WIN32)
+#	include <io.h>
+#else
+#define	_write write
+#endif
 
 #include <memory.h>
 #include "memory.h"
@@ -65,13 +70,14 @@ t_op* vm_get_opcode(t_vm* vm, t_process* process)
 
 void vm_destroy(t_vm* vm)
 {
+	int32 i = 0; 	
 	memory_destroy(vm->memory);
-	for (int32 i = 0; i < vm->process_count; ++i)
+	for (; i < vm->process_count; ++i)
 		if (!vm->processes[i]->free)
 			free(vm->processes[i]);
-	for (int32 i = 0; i < vm->process_pool_count; ++i)
+	for (i = 0; i < vm->process_pool_count; ++i)
 		free(vm->processes_pool[i]);
-	for (int32 i = 0; i < vm->core_count; ++i)
+	for (i = 0; i < vm->core_count; ++i)
 		core_destroy(vm->cores[i]);
 	
 	free(vm->cores);
@@ -167,11 +173,12 @@ int32 vm_write_value(t_vm* vm, t_process* process, int32* offset, int32 type, in
 #define TYPE_3(v) ((v >> 2) & 3)
 #define TYPE(v, a) ((v >> (8 - (a) * 2)) & 3)
 
-int vm_opcode_check(t_process* process)
+int32 vm_opcode_check(t_process* process)
 {
-	for (int i = 0; i < process->current_opcode->nbr_args; ++i)
+	int32 i = 0;
+	for (; i < process->current_opcode->nbr_args; ++i)
 	{
-		int type = TYPE(process->instruction[1], i + 1);
+		int32 type = TYPE(process->instruction[1], i + 1);
 		if ((type & process->current_opcode->type[i]) == 0)
 			return VM_ERROR_ENCODING;
 	}

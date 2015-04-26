@@ -12,15 +12,15 @@
 int main(int ac, char** av)
 {
 	t_core*		core	= core_load_from_file(av[1]);
-	t_vm*		vm		= vm_initialize();
+	t_vm*		vm	= vm_initialize();
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
-	
+	int		i;
 	vm_add_core(vm, core, 0xcacacaca, 0);
 
 	while (vm->process_count)
 	{				
 		vm->cycle_current++;
-		for (int i = 0; i < vm->process_count; ++i)
+		for (i = 0; i < vm->process_count; ++i)
 		{
 			t_process* process = vm->processes[i];
 			if (process->cycle_wait == 0)

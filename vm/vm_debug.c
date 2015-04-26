@@ -35,11 +35,11 @@ char* vm_debug_get_param_desc(int32 type)
 		return "";
 	return "r";
 }
-void vm_printf(int max_size, char* format, ...)
+void vm_printf(int32 max_size, char* format, ...)
 {
 	va_list args;
 	char	buffer[256];
-	int		size = 0;
+	int32	size = 0;
 
 	va_start(args, format);
 	size = vsprintf(buffer, format, args);
@@ -51,11 +51,12 @@ void vm_printf(int max_size, char* format, ...)
 
 void vm_debug_print_command(t_vm* vm, t_process* process)
 {
-	int offset_encoding = 6;
-	int offset = 1;
-	int type;
-	int8 encoding;
-	int32 special = 0;
+	int32 	offset_encoding = 6;
+	int32 	offset = 1;
+	int32 	type;
+	int32	i;
+	int8 	encoding;
+	int32 	special = 0;
 
 	vm_printf(15, "%p(%d)", vm->memory->data + process->pc, process->internal_id);
 	if (process->current_opcode->code)
@@ -79,7 +80,7 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 		default:
 			offset = 2;
 			encoding = read_int8_le(process->instruction + 1);
-			for (int i = 0; i < process->current_opcode->nbr_args; ++i)
+			for (i = 0; i < process->current_opcode->nbr_args; ++i)
 			{
 				type = (encoding >> offset_encoding) & 3;
 				if (special && type == POC_DIR) type = POC_IND;

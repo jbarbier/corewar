@@ -1,5 +1,16 @@
 #include <fcntl.h>
-#include <io.h>
+
+#if defined(_WIN32)
+#	include <io.h>
+#	define OPEN_MODE O_RDONLY | O_BINARY
+#else 
+#	define OPEN_MODE O_RDONLY
+#	define _open open
+#	define _read read
+#	define _close close
+#	define _lseek lseek
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,7 +41,7 @@ void core_destroy(t_core* core)
 
 t_core* core_load_from_file(const char* file_name)
 {
-	int fd = _open(file_name, O_RDONLY | O_BINARY);
+	int fd = _open(file_name, OPEN_MODE);
 
 	if (fd < 0)
 		return NULL;
