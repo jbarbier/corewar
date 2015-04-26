@@ -1,18 +1,9 @@
 #include <fcntl.h>
 
-#if defined(_WIN32)
-#	include <io.h>
-#	define OPEN_MODE O_RDONLY | O_BINARY
-#else 
-#	define OPEN_MODE O_RDONLY
-#	define _open open
-#	define _read read
-#	define _close close
-#	define _lseek lseek
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "../common/utils.h"
 
 #include "core.h"
 

@@ -10,6 +10,8 @@ project "vm"
 	files {
 		"../vm/**.c",
 		"../vm/**.h",
+		"../common/**.c",
+		"../common/**.h",
 		"../vm/shaders/*.frag",
 		"../vm/shaders/*.vert",
 		"../externals/glew/src/*.c",
@@ -17,7 +19,8 @@ project "vm"
 	}
 	includedirs {"../externals/glfw/include",
 	"../externals/glew/include",
-	"../externals/glm"}
+	"../externals/glm",
+	"../common"}
 
 	floatingpoint "Fast"
 	flags       { "Symbols" }

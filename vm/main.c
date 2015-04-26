@@ -1,11 +1,10 @@
 #include <stdlib.h>
 
-#include <GLFW/glfw3.h>
-
 #include "memory.h"
 #include "core.h"
 #include "vm.h"
 
+#include "display.h"
 
 
 
@@ -14,10 +13,14 @@ int main(int ac, char** av)
 	t_core*		core	= core_load_from_file(av[1]);
 	t_vm*		vm	= vm_initialize();
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
-	int		i;
+	int32		i;
+	t_display*  display;
+
 	vm_add_core(vm, core, 0xcacacaca, 0);
 
-	while (vm->process_count)
+	display = display_initialize();
+
+	while (vm->process_count && !display_should_exit(display))
 	{				
 		vm->cycle_current++;
 		for (i = 0; i < vm->process_count; ++i)
@@ -36,7 +39,6 @@ int main(int ac, char** av)
 			}
 			else
 				process->cycle_wait--;
-
 		}
 
 		if (vm->cycle_current > vm->cycle_to_die)
@@ -46,7 +48,9 @@ int main(int ac, char** av)
 		}
 
 		vm_clean_dead_process(vm);
+		display_step(vm, display);
 	}
 
+	display_destroy(display);
 	vm_destroy(vm);
 }
