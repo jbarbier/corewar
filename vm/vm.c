@@ -277,11 +277,11 @@ int vm_execute(t_vm* vm, t_process* process)
 
 	case 10: // ldi
 		encoding = read_int8_le(process->instruction + 1);
-		arg1 = read_int16_le(process->instruction + offset), offset += 2;
+		arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 1);
 		arg1 = vm->read_int16(vm, process->pc + arg1 % IDX_MOD);
-		arg1 += read_int16_le(process->instruction + offset), offset += 2;
+		arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
 		arg1 = vm->read_int32(vm, process->pc + arg1 % IDX_MOD);
-		vm_write_value_mod(vm, process, &offset, (encoding >> 2) & 3, arg1);
+		vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
 		process->carry = arg1 == 0;
 		process->pc += offset;
 		break;
@@ -291,7 +291,7 @@ int vm_execute(t_vm* vm, t_process* process)
 		arg1  = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 1);
 		arg2  = vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
 		arg2 += vm_read_value(vm, process, &offset, TYPE_3(encoding), IDX_MOD, 1);
-		vm->write_int32(vm, arg2, arg1);
+		vm->write_int32(vm, process->pc + arg2, arg1);
 		process->pc += offset;
 		break;
 	
@@ -300,7 +300,6 @@ int vm_execute(t_vm* vm, t_process* process)
 		vm_create_process(vm, process, process->pc + arg1 % IDX_MOD);
 		process->pc += 3;		
 		break;
-	
 	case 13: // lld
 		encoding = read_int8_le(process->instruction + 1);
 		arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), MEM_SIZE, 0);
@@ -311,12 +310,12 @@ int vm_execute(t_vm* vm, t_process* process)
 		break;
 	case 14: // lldi
 		encoding = read_int8_le(process->instruction + 1);
-		arg1 = read_int16_le(process->instruction + offset), offset += 2;
+		arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), MEM_SIZE, 1);
 		arg1 = vm->read_int16(vm, process->pc + arg1);
-		arg1 += read_int16_le(process->instruction + offset), offset += 2;
+		arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), MEM_SIZE, 1);
 		arg1 = vm->read_int32(vm, process->pc + arg1);
-
-		vm_write_value(vm, process, &offset, (encoding >> 2) & 3, arg1);
+		vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
+		process->carry = arg1 == 0;
 		process->pc += offset;
 		break;
 	case 15: // lfork

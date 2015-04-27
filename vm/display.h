@@ -5,6 +5,8 @@
 #include	"types.h"
 
 struct s_display;
+struct s_vm;
+typedef struct s_vm	t_vm;
 typedef struct s_display t_display;
 
 t_display*	display_initialize();

@@ -11,7 +11,7 @@
 #include "vm.h"
 #include "../common/utils.h"
 
-#define DISPLAY_CELL_SIZE	10.f
+#define DISPLAY_CELL_SIZE	1.f
 #define DISPLAY_OK			1
 
 #define DISPLAY_ERROR_SHADER_VERT_FILE -1
@@ -40,15 +40,22 @@ typedef struct s_mat4
 	} mat;
 } t_mat4;
 
-void  mat4_ortho(t_mat4* mat, float left, float right, float bottom, float top, float near, float far)
+void mat4_ident(t_mat4* mat)
 {
-	mat->mat.m[0][0] = (2.f * near) / (right - left);
-	mat->mat.m[1][1] = (2.f * near) / (top - bottom);
-	mat->mat.m[2][0] = (right + left) / (right - left);
-	mat->mat.m[2][1] = (top + bottom) / (top - bottom);
-	mat->mat.m[2][2] = -(far + near) / (far - near);
-	mat->mat.m[2][3] = -1.f;
-	mat->mat.m[3][2] = -(2.f * far * near) / (far - near);
+	mat->mat.m[0][0] = 1; mat->mat.m[1][0] = 0; mat->mat.m[2][0] = 0; mat->mat.m[3][0] = 0;
+	mat->mat.m[0][1] = 0; mat->mat.m[1][1] = 1; mat->mat.m[2][1] = 0; mat->mat.m[3][1] = 0;
+	mat->mat.m[0][2] = 0; mat->mat.m[1][2] = 0; mat->mat.m[2][2] = 1; mat->mat.m[3][2] = 0;
+	mat->mat.m[0][3] = 0; mat->mat.m[1][3] = 0; mat->mat.m[2][3] = 0; mat->mat.m[3][3] = 1;
+}
+
+void  mat4_ortho(t_mat4* mat, float l, float r, float b, float t, float n, float f)
+{
+	mat->mat.v[0] = 2 / (r - l);
+	mat->mat.v[5] = 2 / (t - b);
+	mat->mat.v[10] = -2 / (f - n);
+	mat->mat.v[12] = -(r + l) / (r - l);
+	mat->mat.v[13] = -(t + b) / (t - b);
+	mat->mat.v[14] = -(f + n) / (f - n);
 }
 
 t_v3* v3_set(t_v3* v, float x, float y, float z)
@@ -68,6 +75,11 @@ typedef struct s_display
 	int32		grid_vertex_buffer;
 	int32		hex_texture;
 	t_shader	memory_shader;
+	int32		uniform_projection_matrix;
+	int32		uniform_coord;
+	int32		uniform_texture;
+	int32		memory_vao;
+	int32		memory_vertex_count;
 } t_display;
 
 
@@ -171,6 +183,9 @@ int32 display_gl_load_texture(char* file_name)
 			glBindTexture(GL_TEXTURE_2D, id);
 			glTexImage2D(GL_TEXTURE_2D, 0, internals, width, height, 0, internals, GL_UNSIGNED_BYTE, result);
 			stbi_image_free(result);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		}
 		free(data);
 	}
@@ -212,19 +227,19 @@ void display_generate_grid(t_display* display, int memory_size)
 		{
 			float xc = DISPLAY_CELL_SIZE * x;
 			float xn = xc + DISPLAY_CELL_SIZE;
-			v3_set(&vb->v, xc, yc, 0), vb->i = 0, vb++;
-			v3_set(&vb->v, xn, yc, 0), vb->i = 1, vb++;
-			v3_set(&vb->v, xn, yn, 0), vb->i = 3, vb++;
+			v3_set(&vb->v, xc, yc, 0.1f), vb->i = 0, vb++;
+			v3_set(&vb->v, xn, yc, 0.1f), vb->i = 1, vb++;
+			v3_set(&vb->v, xn, yn, 0.1f), vb->i = 3, vb++;
 
-			v3_set(&vb->v, xc, yc, 0), vb->i = 0, vb++;
-			v3_set(&vb->v, xn, yn, 0), vb->i = 3, vb++;
-			v3_set(&vb->v, xc, yn, 0), vb->i = 2, vb++;
+			v3_set(&vb->v, xc, yc, 0.1f), vb->i = 0, vb++;
+			v3_set(&vb->v, xn, yn, 0.1f), vb->i = 3, vb++;
+			v3_set(&vb->v, xc, yn, 0.1f), vb->i = 2, vb++;
 		}
 	}
 
 	display->grid_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, vb_size, GL_STATIC_DRAW, temp_vb);
 	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 4, GL_STREAM_DRAW, NULL);
-	
+	display->memory_vertex_count = (size + height);
 	free(temp_vb);
 
 }
@@ -238,7 +253,7 @@ t_display* display_initialize()
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_FALSE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	display->window = glfwCreateWindow(640, 480, "Corewar", NULL, NULL);
@@ -251,6 +266,30 @@ t_display* display_initialize()
 	display->hex_texture = display_gl_load_texture("data/hex.png");
 	display_gl_load_shader(&display->memory_shader, "shaders/memory.vert", "shaders/memory.frag");
 	
+	display->uniform_projection_matrix = glGetUniformLocation(display->memory_shader.id, "uni_ProjectionMatrix");
+	display->uniform_coord = glGetUniformLocation(display->memory_shader.id, "uni_Coord");
+	display->uniform_texture = glGetUniformLocation(display->memory_shader.id, "uni_Texture");
+	float delta = 1.f / 255.f;
+	float uv[] = {
+		0.f, 0.f,
+		delta, 0.f,
+		0.f, 1.0f,
+		delta, 1.0f
+	};
+	glUseProgram(display->memory_shader.id);
+	glUniform2fv(display->uniform_coord, 4, uv);
+	int id = 0;
+	glUniform1iv(display->uniform_texture, 1, &id);
+
+	glGenVertexArrays(1, &display->memory_vao);
+	glBindVertexArray(display->memory_vao);
+	glBindBuffer(GL_ARRAY_BUFFER, display->grid_vertex_buffer);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);	
+	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
+	glVertexAttribPointer(1, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
+	
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
 	return display;
 }
 
@@ -275,7 +314,10 @@ void display_step(struct s_vm* vm, t_display* display)
 	uint8*	src = (uint8*) vm->memory->data;
 	int		size = vm->memory->size;
 
-	glBindBuffer(GL_ARRAY_BUFFER, display->grid_vertex_buffer);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_CULL_FACE); 
+
+	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
 	dst = (int*) glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	while (size--)
 	{
@@ -283,6 +325,15 @@ void display_step(struct s_vm* vm, t_display* display)
 		*dst++ = v << 24 | v << 16 | v << 8 | v;
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
+	t_mat4 mat;
+	mat4_ident(&mat);
+	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE) * 10, 0, sqrtf(MEM_SIZE) * 10, 0.0, 10);
+
+	glUseProgram(display->memory_shader.id);
+	glUniformMatrix4fv(display->uniform_projection_matrix, 1, GL_FALSE, mat.mat.v);
+	glBindTexture(GL_TEXTURE_2D, display->hex_texture);
+	glBindVertexArray(display->memory_vao);
+	glDrawArrays(GL_TRIANGLES, 0, display->memory_vertex_count);
 
 	glfwSwapBuffers(display->window);
 	glfwPollEvents();
