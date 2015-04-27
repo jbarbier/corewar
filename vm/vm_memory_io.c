@@ -3,28 +3,28 @@
 #include "vm.h"
 #include "memory.h"
 
-void write_int8_le_vm(struct s_vm* vm, int32 offset, int8 value)
+void write_int8_le_vm(struct s_vm* vm, struct s_process* process, int32 offset, int8 value)
 {
 	while (offset < 0) offset += MEM_SIZE;
 	int8* ptr = vm->memory->data + offset % MEM_SIZE;
-	int8* flag = vm->memory->flag + offset % MEM_SIZE;
 	*ptr = (int8)(value & 0xff);
-	*flag |= MEM_WRITE;
+	process->memory_write_op[process->memory_write_op_count++] = (ptr - vm->memory->data);
+
 }
 
 
-void write_int16_le_vm(struct s_vm* vm, int32 offset, int16 value)
+void write_int16_le_vm(struct s_vm* vm, struct s_process* process, int32 offset, int16 value)
 {	
-	write_int8_le_vm(vm, offset, (int8)((value >> 8) & 0xff));
-	write_int8_le_vm(vm, offset + 1, (int8)(value & 0xff));
+	write_int8_le_vm(vm, process, offset, (int8)((value >> 8) & 0xff));
+	write_int8_le_vm(vm, process, offset + 1, (int8)(value & 0xff));
 }
 
-void write_int32_le_vm(struct s_vm* vm, int32 offset, int32 value)
+void write_int32_le_vm(struct s_vm* vm, struct s_process* process, int32 offset, int32 value)
 {	
-	write_int8_le_vm(vm, offset + 0, (int8)((value >> 24) & 0xff));
-	write_int8_le_vm(vm, offset + 1, (int8)((value >> 16) & 0xff));
-	write_int8_le_vm(vm, offset + 2, (int8)((value >> 8) & 0xff));
-	write_int8_le_vm(vm, offset + 3, (int8)((value >> 0) & 0xff));
+	write_int8_le_vm(vm, process, offset + 0, (int8)((value >> 24) & 0xff));
+	write_int8_le_vm(vm, process, offset + 1, (int8)((value >> 16) & 0xff));
+	write_int8_le_vm(vm, process, offset + 2, (int8)((value >> 8) & 0xff));
+	write_int8_le_vm(vm, process, offset + 3, (int8)((value >> 0) & 0xff));
 }
 
 void write_copy_vm(struct s_vm* vm, int32 offset, int8* src, int32 size)
@@ -48,29 +48,29 @@ void write_copy_vm(struct s_vm* vm, int32 offset, int8* src, int32 size)
 
 //////////////////////////////////////////////////////////////////////////
 
-int8 read_int8_le_vm(struct s_vm* vm, int32 offset)
+int8 read_int8_le_vm(struct s_vm* vm, struct s_process* process, int32 offset)
 {
 	while (offset < 0) offset += MEM_SIZE;
-	int8* flag = vm->memory->flag + offset % MEM_SIZE;
-	*flag |= MEM_READ;
-	return *(vm->memory->data + offset % MEM_SIZE);
+	offset %= MEM_SIZE;
+	process->memory_read_op[process->memory_read_op_count++] = offset;
+	return *(vm->memory->data + offset);
 }
 
-int16 read_int16_le_vm(struct s_vm* vm, int32 offset)
+int16 read_int16_le_vm(struct s_vm* vm, struct s_process* process, int32 offset)
 {
 	int16 dword[2];
-	dword[0] = (int16)(read_int8_le_vm(vm, offset + 0)) & 0xff;
-	dword[1] = (int16)(read_int8_le_vm(vm, offset + 1)) & 0xff;
+	dword[0] = (int16)(read_int8_le_vm(vm, process, offset + 0)) & 0xff;
+	dword[1] = (int16)(read_int8_le_vm(vm, process, offset + 1)) & 0xff;
 	return dword[0] << 8 | dword[1];
 }
 
-int32 read_int32_le_vm(struct s_vm* vm, int32 offset)
+int32 read_int32_le_vm(struct s_vm* vm, struct s_process* process, int32 offset)
 {
 	int32 dword[4];
-	dword[0] = (int32)(read_int8_le_vm(vm, offset + 0)) & 0xff;
-	dword[1] = (int32)(read_int8_le_vm(vm, offset + 1)) & 0xff;
-	dword[2] = (int32)(read_int8_le_vm(vm, offset + 2)) & 0xff;
-	dword[3] = (int32)(read_int8_le_vm(vm, offset + 3)) & 0xff;
+	dword[0] = (int32)(read_int8_le_vm(vm, process, offset + 0)) & 0xff;
+	dword[1] = (int32)(read_int8_le_vm(vm, process, offset + 1)) & 0xff;
+	dword[2] = (int32)(read_int8_le_vm(vm, process, offset + 2)) & 0xff;
+	dword[3] = (int32)(read_int8_le_vm(vm, process, offset + 3)) & 0xff;
 
 	return dword[0] << 24 | dword[1] << 16 | dword[2] << 8 | dword[3] << 0;
 }

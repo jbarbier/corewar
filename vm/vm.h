@@ -8,20 +8,22 @@ struct s_vm;
 struct s_op;
 struct s_core;
 
-typedef void(*write_int32_t)(struct s_vm* mem, int32 offset, int32 value);
-typedef void(*write_int16_t)(struct s_vm* mem, int32 offset, int16 value);
-typedef void(*write_int8_t)(struct s_vm* mem, int32 offset, int8 value);
+typedef void(*write_int32_t)(struct s_vm* mem, struct s_process* process, int32 offset, int32 value);
+typedef void(*write_int16_t)(struct s_vm* mem, struct s_process* process, int32 offset, int16 value);
+typedef void(*write_int8_t)(struct s_vm* mem, struct s_process* process, int32 offset, int8 value);
 typedef void(*write_copy_t)(struct s_vm* mem, int32 offset, int8* src, int32 size);
 
-typedef int32(*read_int32_t)(struct s_vm* mem, int32 offset);
-typedef int16(*read_int16_t)(struct s_vm* mem, int32 offset);
-typedef int8(*read_int8_t)(struct s_vm* mem, int32 offset);
+typedef int32(*read_int32_t)(struct s_vm* mem, struct s_process* process, int32 offset);
+typedef int16(*read_int16_t)(struct s_vm* mem, struct s_process* process, int32 offset);
+typedef int8(*read_int8_t)(struct s_vm* mem, struct s_process* process, int32 offset);
 typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst);
 
 
-#define PROCESS_INSTRUCTION_BUFFER_SIZE 64
+#define PROCESS_INSTRUCTION_BUFFER_SIZE 16
 #define VM_MAX_PROCESSES				65535
 #define VM_MAX_CORES					4
+#define PROCESS_MAX_READ_OP				16
+#define PROCESS_MAX_WRITE_OP			16
 
 #define VM_ERROR_ENCODING	-1
 #define VM_ERROR_OPCODE		-2
@@ -41,6 +43,10 @@ typedef struct s_process
 	int32			free;
 	int32			internal_id;
 	int32			core_id;
+	int32			memory_read_op[PROCESS_MAX_READ_OP];
+	int32			memory_read_op_count;
+	int32			memory_write_op[PROCESS_MAX_WRITE_OP];
+	int32			memory_write_op_count;
 } t_process;
 
 struct s_memory;
@@ -82,6 +88,7 @@ void		vm_kill_process_if_no_live(t_vm* vm);
 void		vm_clean_dead_process(t_vm* vm);
 t_process*	vm_create_process(t_vm* vm, t_process* parent, int pc);
 t_process*	vm_add_core(t_vm* vm, struct s_core* core, int32 core_id, int32 offset);
+void		vm_reset_process_io_op(t_process* process);
 
 //////////////////////////////////////////////////////////////////////////
 // in vm_debug.c

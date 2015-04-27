@@ -6,7 +6,6 @@
 typedef struct s_memory
 {
 	int8*			data;
-	int8*			flag;
 	int32			size;
 } t_memory;
 
@@ -16,6 +15,5 @@ typedef struct s_memory
 
 t_memory*	memory_initialize(int32 size);
 void		memory_destroy(t_memory* memory);
-void		memory_flag_reset(t_memory* memory);
 
 #endif

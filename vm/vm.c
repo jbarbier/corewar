@@ -57,14 +57,14 @@ t_vm* vm_initialize()
 t_op* vm_get_opcode(t_vm* vm, t_process* process)
 {
 	t_op* temp = op_tab;
-	int8 opcode = vm->read_int8(vm, process->pc);
+	int8 opcode = vm->read_int8(vm, process, process->pc);
 
 	while ((temp->code != 0) && (temp->code != opcode))
 		temp++;
 
 	process->current_opcode = temp;
 	process->cycle_wait = temp->nbr_cycles;
-	vm->read_copy(vm, process->pc, 64, process->instruction);
+	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
 	return temp;
 }
 
@@ -109,7 +109,7 @@ int32 vm_read_value(t_vm* vm, t_process* process, int32* offset, int32 type, int
 	{
 		ret = read_int16_le(process->instruction + *offset);
 		if (!dir_as_16)
-			ret = vm->read_int32(vm, process->pc + (ret % mod));
+			ret = vm->read_int32(vm, process, process->pc + (ret % mod));
 		*offset += 2;
 	}
 	else
@@ -135,7 +135,7 @@ int32 vm_write_value_mod(t_vm* vm, t_process* process, int32* offset, int32 type
 	if (type == POC_IND)
 	{
 		ret = read_int16_le(process->instruction + *offset);
-		vm->write_int32(vm, process->pc + (ret % IDX_MOD), value);
+		vm->write_int32(vm, process, process->pc + (ret % IDX_MOD), value);
 		*offset += 2;
 	}
 	else
@@ -155,7 +155,7 @@ int32 vm_write_value(t_vm* vm, t_process* process, int32* offset, int32 type, in
 	if (type == POC_IND)
 	{
 		ret = read_int16_le(process->instruction + *offset);
-		vm->write_int32(vm, process->pc + ret, value);
+		vm->write_int32(vm, process, process->pc + ret, value);
 		*offset += 2;
 	}
 	else
@@ -305,9 +305,9 @@ int vm_execute(t_vm* vm, t_process* process)
 		case 10: // ldi
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 1);
-			arg1 = vm->read_int16(vm, process->pc + arg1 % IDX_MOD);
+			arg1 = vm->read_int16(vm, process, process->pc + arg1 % IDX_MOD);
 			arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
-			arg1 = vm->read_int32(vm, process->pc + arg1 % IDX_MOD);
+			arg1 = vm->read_int32(vm, process, process->pc + arg1 % IDX_MOD);
 			vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
 			process->carry = arg1 == 0;
 			process->pc += offset;
@@ -318,7 +318,7 @@ int vm_execute(t_vm* vm, t_process* process)
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 1);
 			arg2 = vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
 			arg2 += vm_read_value(vm, process, &offset, TYPE_3(encoding), IDX_MOD, 1);
-			vm->write_int32(vm, process->pc + arg2 % IDX_MOD, arg1);
+			vm->write_int32(vm, process, process->pc + arg2 % IDX_MOD, arg1);
 			process->pc += offset;
 			break;
 
@@ -338,9 +338,9 @@ int vm_execute(t_vm* vm, t_process* process)
 		case 14: // lldi
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), MEM_SIZE, 1);
-			arg1 = vm->read_int16(vm, process->pc + arg1);
+			arg1 = vm->read_int16(vm, process, process->pc + arg1);
 			arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), MEM_SIZE, 1);
-			arg1 = vm->read_int32(vm, process->pc + arg1);
+			arg1 = vm->read_int32(vm, process, process->pc + arg1);
 			vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
 			process->carry = arg1 == 0;
 			process->pc += offset;

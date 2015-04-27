@@ -20,12 +20,19 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 	process->pc = pc;
 	process->internal_id = vm->process_counter++;
 	process->cycle_live = vm->cycle_current;
+	process->memory_write_op_count = 0;
+	process->memory_read_op_count = 0;
 	vm_get_opcode(vm, process);
 	vm->processes[vm->process_count++] = process;
 
 	return process;
 }
 
+void	vm_reset_process_io_op(t_process* process)
+{
+	process->memory_read_op_count = 0;
+	process->memory_write_op_count = 0;
+}
 
 void vm_clean_dead_process(t_vm* vm)
 {
