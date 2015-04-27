@@ -5,7 +5,7 @@
 #include	"types.h"
 
 
-#define DISPLAY_CELL_SIZE				1.f
+#define DISPLAY_CELL_SIZE				10.f
 #define DISPLAY_OK						1
 
 

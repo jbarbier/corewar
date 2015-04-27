@@ -7,7 +7,9 @@ void write_int8_le_vm(struct s_vm* vm, int32 offset, int8 value)
 {
 	while (offset < 0) offset += MEM_SIZE;
 	int8* ptr = vm->memory->data + offset % MEM_SIZE;
+	int8* flag = vm->memory->flag + offset % MEM_SIZE;
 	*ptr = (int8)(value & 0xff);
+	*flag |= MEM_WRITE;
 }
 
 
@@ -46,6 +48,8 @@ void write_copy_vm(struct s_vm* vm, int32 offset, int8* src, int32 size)
 int8 read_int8_le_vm(struct s_vm* vm, int32 offset)
 {
 	while (offset < 0) offset += MEM_SIZE;
+	int8* flag = vm->memory->flag + offset % MEM_SIZE;
+	*flag |= MEM_READ;
 	return *(vm->memory->data + offset % MEM_SIZE);
 }
 

@@ -69,7 +69,9 @@ int32 display_gl_load_shader(t_shader* shader, char* vert_file, char* frag_file)
 
 	glValidateProgram(shader->id);
 	glLinkProgram(shader->id);
-
+	
+	display_gl_log(shader->id, "LINK", 0);
+	
 	return DISPLAY_GL_OK;
 }
 int32 display_gl_create_buffer(int32 type, int32 size, int32 flags, void* data)

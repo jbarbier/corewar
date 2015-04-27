@@ -18,20 +18,25 @@ int main(int ac, char** av)
 	int32		update_display = 0;
 
 	vm_add_core(vm, core, 0xcacacaca, 0);
-
+	memory_flag_reset(vm->memory);
 	display = display_initialize();
 
 	while (vm->process_count && !display_should_exit(display))
 	{				
 		vm->cycle_current++;
+		update_display = 1;
+
 		for (i = 0; i < vm->process_count; ++i)
 		{
 			t_process* process = vm->processes[i];
 			if (process->cycle_wait == 0)
 			{
+				if (update_display)
+					memory_flag_reset(vm->memory);
+				update_display = 0;
 				vm_execute(vm, process);
 				vm_get_opcode(vm, process);
-				update_display = 1;
+				
 				if (vm->live_count > NBR_LIVE)
 				{
 					vm->live_count = 0;
@@ -49,9 +54,9 @@ int main(int ac, char** av)
 		}
 
 		vm_clean_dead_process(vm);
-		if (update_display == 1)
+		if (update_display == 0)
 			display_step(vm, display);
-		update_display = 0;
+			
 	}
 
 	display_destroy(display);

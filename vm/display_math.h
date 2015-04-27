@@ -19,6 +19,7 @@ typedef struct s_mat4
 
 void	mat4_ident(t_mat4* mat);
 void	mat4_ortho(t_mat4* mat, float l, float r, float b, float t, float n, float f);
+void	mat4_x_v3(t_mat4* mat, t_v3* src, t_v3* dst);
 t_v3*	v3_set(t_v3* v, float x, float y, float z);
 
 

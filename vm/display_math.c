@@ -26,3 +26,13 @@ t_v3* v3_set(t_v3* v, float x, float y, float z)
 
 	return v;
 }
+
+void mat4_x_v3(t_mat4* mat, t_v3* src, t_v3* dst)
+{
+	float x = src->x * mat->mat.m[0][0] + src->y * mat->mat.m[1][0] + src->z * mat->mat.m[2][0] + mat->mat.m[3][0];
+	float y = src->x * mat->mat.m[0][1] + src->y * mat->mat.m[1][1] + src->z * mat->mat.m[2][1] + mat->mat.m[3][1];
+	float z = src->x * mat->mat.m[0][2] + src->y * mat->mat.m[1][2] + src->z * mat->mat.m[2][2] + mat->mat.m[3][2];
+	dst->x = x;
+	dst->y = x;
+	dst->z = x;
+}
