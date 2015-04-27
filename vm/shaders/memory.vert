@@ -12,5 +12,6 @@ void main(void)
     vec4 position = in_Position;
 	position.w = 1;
 	vertexShader_UV = uni_Coord[int(in_Position.w)];
+	vertexShader_UV.x = vertexShader_UV.x + in_Value;
     gl_Position = uni_ProjectionMatrix * position;
 }

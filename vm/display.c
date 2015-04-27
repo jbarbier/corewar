@@ -50,6 +50,7 @@ void mat4_ident(t_mat4* mat)
 
 void  mat4_ortho(t_mat4* mat, float left, float right, float bottom, float top, float near, float far)
 {
+
 	mat->mat.m[0][0] = (2.f) / (right - left);
 	mat->mat.m[1][1] = (2.f) / (top - bottom);
 	mat->mat.m[2][0] = (right + left) / (right - left);
@@ -184,6 +185,9 @@ int32 display_gl_load_texture(char* file_name)
 			glBindTexture(GL_TEXTURE_2D, id);
 			glTexImage2D(GL_TEXTURE_2D, 0, internals, width, height, 0, internals, GL_UNSIGNED_BYTE, result);
 			stbi_image_free(result);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
 		}
 		free(data);
 	}
@@ -325,7 +329,7 @@ void display_step(t_vm* vm, t_display* display)
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	t_mat4 mat;
 	mat4_ident(&mat);
-	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE) * 10.f, 0, sqrtf(MEM_SIZE) * 10.f, 0, 10);
+	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE), 0, sqrtf(MEM_SIZE), 0, 10);
 
 	glUseProgram(display->memory_shader.id);
 	glUniformMatrix4fv(display->uniform_projection_matrix, 1, GL_FALSE, mat.mat.v);
