@@ -15,6 +15,7 @@ int main(int ac, char** av)
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
 	int32		i;
 	t_display*  display;
+	int32		update_display = 0;
 
 	vm_add_core(vm, core, 0xcacacaca, 0);
 
@@ -30,7 +31,7 @@ int main(int ac, char** av)
 			{
 				vm_execute(vm, process);
 				vm_get_opcode(vm, process);
-
+				update_display = 1;
 				if (vm->live_count > NBR_LIVE)
 				{
 					vm->live_count = 0;
@@ -48,7 +49,9 @@ int main(int ac, char** av)
 		}
 
 		vm_clean_dead_process(vm);
-		display_step(vm, display);
+		if (update_display == 1)
+			display_step(vm, display);
+		update_display = 0;
 	}
 
 	display_destroy(display);

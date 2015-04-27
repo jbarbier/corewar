@@ -11,7 +11,7 @@
 #include "vm.h"
 #include "../common/utils.h"
 
-#define DISPLAY_CELL_SIZE	10.f
+#define DISPLAY_CELL_SIZE	1.f
 #define DISPLAY_OK			1
 
 #define DISPLAY_ERROR_SHADER_VERT_FILE -1
@@ -42,22 +42,20 @@ typedef struct s_mat4
 
 void mat4_ident(t_mat4* mat)
 {
-	mat->mat.v[0 + 4 * 0] = 1; mat->mat.v[0 + 4 * 1] = 0; mat->mat.v[0 + 4 * 2] = 0; mat->mat.v[0 + 4 * 3] = 0;
-	mat->mat.v[1 + 4 * 0] = 0; mat->mat.v[1 + 4 * 1] = 1; mat->mat.v[1 + 4 * 2] = 0; mat->mat.v[1 + 4 * 3] = 0;
-	mat->mat.v[2 + 4 * 0] = 0; mat->mat.v[2 + 4 * 1] = 0; mat->mat.v[2 + 4 * 2] = 1; mat->mat.v[2 + 4 * 3] = 0;
-	mat->mat.v[3 + 4 * 0] = 0; mat->mat.v[3 + 4 * 1] = 0; mat->mat.v[3 + 4 * 2] = 0; mat->mat.v[3 + 4 * 3] = 1;
+	mat->mat.m[0][0] = 1; mat->mat.m[1][0] = 0; mat->mat.m[2][0] = 0; mat->mat.m[3][0] = 0;
+	mat->mat.m[0][1] = 0; mat->mat.m[1][1] = 1; mat->mat.m[2][1] = 0; mat->mat.m[3][1] = 0;
+	mat->mat.m[0][2] = 0; mat->mat.m[1][2] = 0; mat->mat.m[2][2] = 1; mat->mat.m[3][2] = 0;
+	mat->mat.m[0][3] = 0; mat->mat.m[1][3] = 0; mat->mat.m[2][3] = 0; mat->mat.m[3][3] = 1;
 }
 
-void  mat4_ortho(t_mat4* mat, float left, float right, float bottom, float top, float near, float far)
+void  mat4_ortho(t_mat4* mat, float l, float r, float b, float t, float n, float f)
 {
-
-	mat->mat.m[0][0] = (2.f) / (right - left);
-	mat->mat.m[1][1] = (2.f) / (top - bottom);
-	mat->mat.m[2][0] = (right + left) / (right - left);
-	mat->mat.m[2][1] = (top + bottom) / (top - bottom);
-	mat->mat.m[2][2] = -(far + near) / (far - near);
-	mat->mat.m[2][3] = -1.f;
-	mat->mat.m[3][2] = -(2.f * far * near) / (far - near);
+	mat->mat.v[0] = 2 / (r - l);
+	mat->mat.v[5] = 2 / (t - b);
+	mat->mat.v[10] = -2 / (f - n);
+	mat->mat.v[12] = -(r + l) / (r - l);
+	mat->mat.v[13] = -(t + b) / (t - b);
+	mat->mat.v[14] = -(f + n) / (f - n);
 }
 
 t_v3* v3_set(t_v3* v, float x, float y, float z)
@@ -329,7 +327,7 @@ void display_step(t_vm* vm, t_display* display)
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 	t_mat4 mat;
 	mat4_ident(&mat);
-	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE), 0, sqrtf(MEM_SIZE), 0, 10);
+	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE) * 10, 0, sqrtf(MEM_SIZE) * 10, 0.0, 10);
 
 	glUseProgram(display->memory_shader.id);
 	glUniformMatrix4fv(display->uniform_projection_matrix, 1, GL_FALSE, mat.mat.v);
