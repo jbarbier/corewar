@@ -10,6 +10,6 @@ out vec4 out_FragColor;
 
 void main(void)
 {
-    vec4 texColour = texture(uni_Texture, vertexShader_UV) * vertexShader_Color;
+    vec4 texColour = vertexShader_Color - texture(uni_Texture, vertexShader_UV) ;
     out_FragColor = texColour;
 }

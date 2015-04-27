@@ -39,7 +39,10 @@ void write_copy_vm(struct s_vm* vm, int32 offset, int8* src, int32 size)
 		memcpy(vm->memory->data, src + count, size - count);
 	}
 	else
+	{
 		memcpy(vm->memory->data + offset, src, size);
+	}
+		
 }
 
 
@@ -84,7 +87,10 @@ void read_copy_vm(struct s_vm* vm, int32 offset, int32 size, int8* dst)
 		memcpy(dst + count, vm->memory->data, size - count);
 	}
 	else
+	{
 		memcpy(dst, vm->memory->data + offset, size);
+	}
+		
 }
 
 //////////////////////////////////////////////////////////////////////////

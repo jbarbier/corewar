@@ -214,6 +214,11 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 	/*value = (value + 1) % 256;*/
 }
 
+int			display_key_pressed(t_display* display, int key)
+{
+	return glfwGetKey(display->window, key) == GLFW_PRESS;
+}
+
 
 void display_step(struct s_vm* vm, t_display* display)
 {
