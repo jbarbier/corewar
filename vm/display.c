@@ -1,6 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
-#define STB_IMAGE_IMPLEMENTATION
+
 #include <stb_image.h>
 
 #include <math.h>
@@ -10,62 +10,10 @@
 #include "memory.h"
 #include "vm.h"
 #include "../common/utils.h"
+#include "display_math.h"
+#include "display_gl.h"
 
-#define DISPLAY_CELL_SIZE	1.f
-#define DISPLAY_OK			1
 
-#define DISPLAY_ERROR_SHADER_VERT_FILE -1
-#define DISPLAY_ERROR_SHADER_FRAG_FILE -2
-
-typedef struct s_shader
-{
-	int id;
-	int vertex_id;
-	int fragment_id;
-} t_shader;
-
-typedef struct s_v3
-{
-	float x;
-	float y;
-	float z;
-} t_v3;
-
-typedef struct s_mat4
-{
-	union
-	{
-		float v[16];
-		float m[4][4];
-	} mat;
-} t_mat4;
-
-void mat4_ident(t_mat4* mat)
-{
-	mat->mat.m[0][0] = 1; mat->mat.m[1][0] = 0; mat->mat.m[2][0] = 0; mat->mat.m[3][0] = 0;
-	mat->mat.m[0][1] = 0; mat->mat.m[1][1] = 1; mat->mat.m[2][1] = 0; mat->mat.m[3][1] = 0;
-	mat->mat.m[0][2] = 0; mat->mat.m[1][2] = 0; mat->mat.m[2][2] = 1; mat->mat.m[3][2] = 0;
-	mat->mat.m[0][3] = 0; mat->mat.m[1][3] = 0; mat->mat.m[2][3] = 0; mat->mat.m[3][3] = 1;
-}
-
-void  mat4_ortho(t_mat4* mat, float l, float r, float b, float t, float n, float f)
-{
-	mat->mat.v[0] = 2 / (r - l);
-	mat->mat.v[5] = 2 / (t - b);
-	mat->mat.v[10] = -2 / (f - n);
-	mat->mat.v[12] = -(r + l) / (r - l);
-	mat->mat.v[13] = -(t + b) / (t - b);
-	mat->mat.v[14] = -(f + n) / (f - n);
-}
-
-t_v3* v3_set(t_v3* v, float x, float y, float z)
-{
-	v->x = x;
-	v->y = y;
-	v->z = z;
-
-	return v;
-}
 
 typedef struct s_display
 {
@@ -83,124 +31,6 @@ typedef struct s_display
 } t_display;
 
 
-void display_gl_log(int id, const char* desc, int is_shader)
-{
-	int log_length;
-	if (is_shader)
-		glGetShaderiv(id, GL_INFO_LOG_LENGTH, &log_length);
-	else
-		glGetProgramiv(id, GL_INFO_LOG_LENGTH, &log_length);
-	if (log_length > 1)
-	{
-		char* log = malloc(log_length);
-		if (is_shader)
-			glGetShaderInfoLog(id, log_length, &log_length, &log[0]);
-		else
-			glGetProgramInfoLog(id, log_length, &log_length, &log[0]);
-		printf("%s: %s", desc, log);
-		free(log);
-	}
-}
-
-void display_gl_destroy_shader(t_shader* shader)
-{
-	glDeleteShader(shader->vertex_id);
-	glDeleteShader(shader->fragment_id);
-	glDeleteProgram(shader->id);
-}
-
-int32 display_gl_compile_shader(char* name, char* src, int32 type)
-{
-	int32 shader = glCreateShader(type);
-	glShaderSource(shader, 1, &src, NULL);
-	glCompileShader(shader);
-	int32 compiled;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
-	if (!compiled)
-	{
-		display_gl_log(shader, name, 1);
-		return -1;
-	}
-	return shader;
-}
-
-int32 display_gl_load_shader(t_shader* shader, char* vert_file, char* frag_file)
-{
-	shader->id = glCreateProgram();
-
-	char* vert_code = file_to_memory(vert_file, NULL);
-	char* frag_code = file_to_memory(frag_file, NULL);
-
-	if (vert_code == NULL)
-		return DISPLAY_ERROR_SHADER_VERT_FILE;
-	if (frag_code == NULL)
-	{
-		free(vert_code);
-		return DISPLAY_ERROR_SHADER_FRAG_FILE;
-	}
-
-	shader->vertex_id = display_gl_compile_shader(vert_file, vert_code, GL_VERTEX_SHADER);
-	shader->fragment_id = display_gl_compile_shader(frag_file, frag_code, GL_FRAGMENT_SHADER);
-
-	glAttachShader(shader->id, shader->vertex_id);
-	glAttachShader(shader->id, shader->fragment_id);
-
-	glValidateProgram(shader->id);
-	glLinkProgram(shader->id);
-
-	return DISPLAY_OK;
-}
-int32 display_gl_create_buffer(int32 type, int32 size, int32 flags, void* data)
-{
-	int32 id;
-	glGenBuffers(1, &id);
-	glBindBuffer(type, id);
-	glBufferData(type, size, data, flags);
-	return id;
-}
-int32 display_gl_load_texture(char* file_name)
-{
-	int32 size;
-	int32 width, height, channels;
-	int32 id = -1;
-
-	char* data = file_to_memory(file_name, &size);
-	if (data)
-	{
-		char* result = stbi_load_from_memory(data, size, &width, &height, &channels, 4);
-		if (result)
-		{
-			int32 internals;
-			switch (channels)
-			{
-			case 1: internals = GL_RED; break;
-			case 2: internals = GL_RG; break;
-			case 3: internals = GL_RGB; break;
-			case 4: internals = GL_RGBA; break;
-			}
-
-			glGenTextures(1, &id);
-			glBindTexture(GL_TEXTURE_2D, id);
-			glTexImage2D(GL_TEXTURE_2D, 0, internals, width, height, 0, internals, GL_UNSIGNED_BYTE, result);
-			stbi_image_free(result);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		}
-		free(data);
-	}
-	return id;
-}
-
-void display_gl_destroy_texture(int32 id)
-{
-	glDeleteTextures(1, &id);
-}
-
-void display_gl_destroy_buffer(int32 id)
-{
-	glDeleteBuffers(1, &id);
-}
 
 typedef struct s_grid_vertex
 {
@@ -286,7 +116,7 @@ t_display* display_initialize()
 	glBindBuffer(GL_ARRAY_BUFFER, display->grid_vertex_buffer);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, NULL);	
 	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
-	glVertexAttribPointer(1, 1, GL_UNSIGNED_BYTE, GL_FALSE, 0, NULL);
+	glVertexAttribPointer(1, 1, GL_UNSIGNED_BYTE, GL_TRUE, 0, NULL);
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -325,9 +155,10 @@ void display_step(struct s_vm* vm, t_display* display)
 		*dst++ = v << 24 | v << 16 | v << 8 | v;
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
+	
 	t_mat4 mat;
 	mat4_ident(&mat);
-	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE) * 10, 0, sqrtf(MEM_SIZE) * 10, 0.0, 10);
+	mat4_ortho(&mat, 0, sqrtf(MEM_SIZE) * 10, sqrtf(MEM_SIZE) * 10, 0, 0.0, 10);
 
 	glUseProgram(display->memory_shader.id);
 	glUniformMatrix4fv(display->uniform_projection_matrix, 1, GL_FALSE, mat.mat.v);

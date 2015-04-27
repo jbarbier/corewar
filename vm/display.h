@@ -4,6 +4,11 @@
 #include 	"vm.h"
 #include	"types.h"
 
+
+#define DISPLAY_CELL_SIZE				1.f
+#define DISPLAY_OK						1
+
+
 struct s_display;
 struct s_vm;
 typedef struct s_vm	t_vm;

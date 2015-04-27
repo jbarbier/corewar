@@ -41,9 +41,10 @@ project "vm"
 		defines        {"_CRT_SECURE_NO_DEPRECATE" }
 
 	configuration "windows"
-		os.copyfile("../externals/glfw/lib/glfw3.dll", "../build/glfw3.dll")
-		libdirs "../externals/glfw/lib"
+		os.copyfile("../externals/glfw/lib/windows/glfw3.dll", "../build/glfw3.dll")
+		libdirs "../externals/glfw/lib/windows"
 		system "Windows"
+		platforms { "x32", "x64" }
 		links {"opengl32", "glfw3dll", "Ws2_32"}
 
 	configuration { "macosx", "gmake" }
