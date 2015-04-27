@@ -1,7 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include "types.h"
+#include 	"vm.h"
+#include	"types.h"
 
 struct s_display;
 typedef struct s_display t_display;

@@ -269,7 +269,7 @@ void display_destroy(t_display* display)
 	glfwTerminate();
 }
 
-void display_step(t_vm* vm, t_display* display)
+void display_step(struct s_vm* vm, t_display* display)
 {
 	uint32* dst;
 	uint8*	src = (uint8*) vm->memory->data;
