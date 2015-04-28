@@ -34,7 +34,6 @@ typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst
 typedef struct s_process
 {
 	int32			pc;
-	int32			next_pc;
 	int32			reg[REG_NUMBER];
 	int32			carry;
 	int32			cycle_wait;
@@ -48,7 +47,7 @@ typedef struct s_process
 	int32			memory_read_op_count;
 	int32			memory_write_op[PROCESS_MAX_WRITE_OP];
 	int32			memory_write_op_count;
-	
+	int32			memory_live;
 } t_process;
 
 struct s_memory;

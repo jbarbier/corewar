@@ -221,7 +221,7 @@ int			display_key_pressed(t_display* display, int key)
 
 void display_render_memory(struct s_vm* vm, t_display* display, t_mat4* projection)
 {
-	float color_mem[] = { 1, 1, 1, 1 };
+	float color_mem[] = { 0.4, 0.4, 0.8, 1 };
 
 	display_update_memory(vm, display);
 	glUseProgram(display->memory_shader.id);
@@ -308,7 +308,7 @@ void display_render_io_process(struct s_vm* vm, t_display* display, t_mat4* proj
 	float	color_io_write[] = { 0.4f, 0.4f, 1.0f, 0.0f };
 	uint8*	dst;
 	int		size = vm->memory->size;
-	int		i, j;
+	int		i;
 
 	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
 	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
@@ -387,7 +387,7 @@ void display_step(struct s_vm* vm, t_display* display)
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, display->frame_buffer_width, display->frame_buffer_height);
-	glDisable(GL_BLEND);
+	glEnable(GL_BLEND);
 	display_render_memory(vm, display, &mat);
 
 	display_render_io_read(vm, display, &mat);

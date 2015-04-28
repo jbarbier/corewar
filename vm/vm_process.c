@@ -17,8 +17,10 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 	else
 		memset(process, 0, sizeof(t_process));
 
+	while (pc < 0) pc += MEM_SIZE;
+	pc %= MEM_SIZE;
+
 	process->pc = pc;
-	process->next_pc = pc;
 	process->internal_id = vm->process_counter++;
 	process->cycle_live = vm->cycle_current;
 	process->memory_write_op_count = 0;
