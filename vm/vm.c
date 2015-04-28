@@ -35,7 +35,7 @@ t_vm* vm_initialize()
 	vm->cycle_current = 0;
 	vm->cycle_to_die = CYCLE_TO_DIE;
 	vm->cycle_delta = CYCLE_DELTA;
-	vm->live_count = NBR_LIVE;
+	vm->live_count = 0;
 	vm->process_count = 0;
 	vm->process_counter = 0;
 	vm->processes = (t_process**) malloc(sizeof(t_process*) * VM_MAX_PROCESSES);
@@ -65,6 +65,7 @@ t_op* vm_get_opcode(t_vm* vm, t_process* process)
 	process->current_opcode = temp;
 	process->cycle_wait = temp->nbr_cycles;
 	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
+	vm_debug_print_command(vm, process);
 	return temp;
 }
 
@@ -108,8 +109,7 @@ int32 vm_read_value(t_vm* vm, t_process* process, int32* offset, int32 type, int
 	else if (type == POC_IND)
 	{
 		ret = read_int16_le(process->instruction + *offset);
-		if (!dir_as_16)
-			ret = vm->read_int32(vm, process, process->pc + (ret % mod));
+		ret = vm->read_int32(vm, process, process->pc + (ret % mod));
 		*offset += 2;
 	}
 	else
@@ -216,7 +216,8 @@ int vm_execute(t_vm* vm, t_process* process)
 	int32   offset = 2;
 	int32	arg1, arg2, arg3;	
 
-	/*vm_debug_print_command(vm, process);*/
+	/*vm_debug_print_command(vm, process);*/	
+	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
 	int32	ret = vm_opcode_check(process);
 	if (ret == VM_OK)
 	{
@@ -226,7 +227,7 @@ int vm_execute(t_vm* vm, t_process* process)
 			vm->live_count++;
 			arg1 = read_int32_le(process->instruction + 1);
 			process->cycle_live = vm->cycle_current;
-			process->pc += 5;
+			process->next_pc = process->pc + 5;
 			break;
 		case 2: // ld
 			encoding = read_int8_le(process->instruction + 1);
@@ -235,13 +236,13 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg2] = arg1;
 			process->carry = (arg1 == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;			
 			break;
 		case 3: // st
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 0);
-			arg2 = vm_write_value_mod(vm, process, &offset, TYPE_2(encoding), arg1);
-			process->pc += offset;
+			arg2 = vm_write_value_mod(vm, process, &offset, TYPE_2(encoding), arg1);			
+			process->next_pc = process->pc + offset;
 			break;
 
 		case 4: // add
@@ -251,8 +252,8 @@ int vm_execute(t_vm* vm, t_process* process)
 			arg3 = vm_read_register(vm, process, &offset);
 
 			process->reg[arg3] = arg1 + arg2;
-			process->carry = (process->reg[arg3] == 0);
-			process->pc += offset;
+			process->carry = (process->reg[arg3] == 0);			
+			process->next_pc = process->pc + offset;
 			break;
 		case 5: // sub
 			encoding = read_int8_le(process->instruction + 1);
@@ -262,7 +263,7 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg3] = arg1 - arg2;
 			process->carry = (process->reg[arg3] == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 6: // and
 			encoding = read_int8_le(process->instruction + 1);
@@ -272,7 +273,7 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg3] = arg1 & arg2;
 			process->carry = (process->reg[arg3] == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 7: // or
 			encoding = read_int8_le(process->instruction + 1);
@@ -282,7 +283,7 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg3] = arg1 | arg2;
 			process->carry = (process->reg[arg3] == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 8: // xor
 			encoding = read_int8_le(process->instruction + 1);
@@ -292,25 +293,24 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg3] = arg1 ^ arg2;
 			process->carry = (process->reg[arg3] == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 9: // zjmp
 			arg1 = read_int16_le(process->instruction + 1);
 			if (process->carry)
-				process->pc = process->pc + arg1 % IDX_MOD;
+				process->next_pc = process->pc + arg1 % IDX_MOD;
 			else
-				process->pc += 3;
+				process->next_pc = process->pc + 3;
 			break;
 
 		case 10: // ldi
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 1);
-			arg1 = vm->read_int16(vm, process, process->pc + arg1 % IDX_MOD);
 			arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
 			arg1 = vm->read_int32(vm, process, process->pc + arg1 % IDX_MOD);
 			vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
 			process->carry = arg1 == 0;
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 
 		case 11: // sti
@@ -319,13 +319,13 @@ int vm_execute(t_vm* vm, t_process* process)
 			arg2 = vm_read_value(vm, process, &offset, TYPE_2(encoding), IDX_MOD, 1);
 			arg2 += vm_read_value(vm, process, &offset, TYPE_3(encoding), IDX_MOD, 1);
 			vm->write_int32(vm, process, process->pc + arg2 % IDX_MOD, arg1);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 
 		case 12: // fork
 			arg1 = read_int16_le(process->instruction + 1);
 			vm_create_process(vm, process, process->pc + arg1 % IDX_MOD);
-			process->pc += 3;
+			process->next_pc = process->pc + 3;
 			break;
 		case 13: // lld
 			encoding = read_int8_le(process->instruction + 1);
@@ -333,29 +333,28 @@ int vm_execute(t_vm* vm, t_process* process)
 			arg2 = vm_read_register(vm, process, &offset);
 			process->reg[arg2] = arg1;
 			process->carry = (arg1 == 0);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 14: // lldi
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), MEM_SIZE, 1);
-			arg1 = vm->read_int16(vm, process, process->pc + arg1);
 			arg1 += vm_read_value(vm, process, &offset, TYPE_2(encoding), MEM_SIZE, 1);
 			arg1 = vm->read_int32(vm, process, process->pc + arg1);
 			vm_write_value_mod(vm, process, &offset, TYPE_3(encoding), arg1);
 			process->carry = arg1 == 0;
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		case 15: // lfork
 			arg1 = read_int16_le(process->instruction + 1);
 			vm_create_process(vm, process, process->pc + arg1);
-			process->pc += 3;
+			process->next_pc = process->pc + 3;
 			break;
 		case 16: // aff
 			encoding = read_int8_le(process->instruction + 1);
-			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding >> 6), MEM_SIZE, 0);
+			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), MEM_SIZE, 0);
 			uint8 v = (uint8)(arg1 % 0xff);
 			_write(0, &v, 1);
-			process->pc += offset;
+			process->next_pc = process->pc + offset;
 			break;
 		default:
 			ret = VM_ERROR_OPCODE;
@@ -363,8 +362,8 @@ int vm_execute(t_vm* vm, t_process* process)
 		}
 	}
 	if (ret != VM_OK)
-		process->pc++;
+		process->next_pc = process->pc + 1;
 
-	process->pc = process->pc % MEM_SIZE;
+	process->next_pc = process->next_pc % MEM_SIZE;
 	return ret;
 }

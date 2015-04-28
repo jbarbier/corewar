@@ -35,6 +35,7 @@ char* vm_debug_get_param_desc(int32 type)
 		return "";
 	return "r";
 }
+
 void vm_printf(int32 max_size, char* format, ...)
 {
 	va_list args;
@@ -47,6 +48,23 @@ void vm_printf(int32 max_size, char* format, ...)
 	size = max_size - size;
 	if (size < 0) size = 0;
 	printf("%s%*s", buffer, size, " ");
+}
+
+void vm_debug_print_process(t_process* process)
+{
+	int i;
+
+	printf("-------------------------------------------------------------------------------\n");
+	printf("process %d\n", process->internal_id);
+	printf("pc=0x%0.8x (%d)\n", process->pc, process->pc);
+	printf("carry=%d\n", process->carry);
+	for (i = 0; i < REG_NUMBER; ++i)
+	{
+		vm_printf(4, "r%0.2d", i + 1, process->reg[i], process->reg[i]);
+		printf("= 0x%0.8x", process->reg[i]);
+		printf("(%d)\n", process->reg[i]);
+	}
+	printf("-------------------------------------------------------------------------------\n");
 }
 
 void vm_debug_print_command(t_vm* vm, t_process* process)

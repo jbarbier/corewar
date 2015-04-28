@@ -18,13 +18,14 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 		memset(process, 0, sizeof(t_process));
 
 	process->pc = pc;
+	process->next_pc = pc;
 	process->internal_id = vm->process_counter++;
 	process->cycle_live = vm->cycle_current;
 	process->memory_write_op_count = 0;
 	process->memory_read_op_count = 0;
-	vm_get_opcode(vm, process);
+	process->cycle_wait = 0;	
 	vm->processes[vm->process_count++] = process;
-
+	vm_get_opcode(vm, process);
 	return process;
 }
 
@@ -78,7 +79,9 @@ void	vm_kill_process_if_no_live(t_vm* vm)
 	for (; i < vm->process_count; ++i)
 	{
 		if (vm->processes[i]->cycle_live == 0)
+		{			
 			vm_destroy_process(vm, vm->processes[i]);
+		}
 		else
 			vm->processes[i]->cycle_live = 0;
 	}

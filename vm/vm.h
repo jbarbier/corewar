@@ -22,8 +22,8 @@ typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst
 #define PROCESS_INSTRUCTION_BUFFER_SIZE 16
 #define VM_MAX_PROCESSES				65535
 #define VM_MAX_CORES					4
-#define PROCESS_MAX_READ_OP				16
-#define PROCESS_MAX_WRITE_OP			16
+#define PROCESS_MAX_READ_OP				32
+#define PROCESS_MAX_WRITE_OP			32
 
 #define VM_ERROR_ENCODING	-1
 #define VM_ERROR_OPCODE		-2
@@ -34,6 +34,7 @@ typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst
 typedef struct s_process
 {
 	int32			pc;
+	int32			next_pc;
 	int32			reg[REG_NUMBER];
 	int32			carry;
 	int32			cycle_wait;
@@ -47,6 +48,7 @@ typedef struct s_process
 	int32			memory_read_op_count;
 	int32			memory_write_op[PROCESS_MAX_WRITE_OP];
 	int32			memory_write_op_count;
+	
 } t_process;
 
 struct s_memory;
@@ -72,14 +74,16 @@ typedef struct s_vm
 	read_copy_t		read_copy;
 
 	t_process**		processes;	
-	int				process_count;
+	int32			process_count;
 	
 	t_process**		processes_pool;
-	int				process_pool_count;
-	int				process_counter;
+	int32			process_pool_count;
+	int32			process_counter;
 
 	struct s_core**	cores;
-	int				core_count;
+	int32			core_count;
+
+	int32			dump_to_cycle;
 } t_vm;
 
 //////////////////////////////////////////////////////////////////////////
@@ -93,7 +97,7 @@ void		vm_reset_process_io_op(t_process* process);
 //////////////////////////////////////////////////////////////////////////
 // in vm_debug.c
 void		vm_debug_print_command(t_vm* vm, t_process* process);
-
+void		vm_debug_print_process(t_process* process);
 //////////////////////////////////////////////////////////////////////////
 // in vm.c
 t_vm*		vm_initialize();
