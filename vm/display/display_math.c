@@ -36,3 +36,32 @@ void mat4_x_v3(t_mat4* mat, t_v3* src, t_v3* dst)
 	dst->y = x;
 	dst->z = x;
 }
+
+
+t_v2*	v2_set(t_v2* v, float x, float y)
+{
+	v->x = x;
+	v->y = y;
+	return v;
+}
+
+t_v2*	v2_add(t_v2* vin, t_v2* add, t_v2* vout)
+{
+	vout->x = vin->x + add->x;
+	vout->y = vin->y + add->y;
+	return vout;
+}
+
+t_v2*	v2_sub(t_v2* vin, t_v2* sub, t_v2* vout)
+{
+	vout->x = vin->x - sub->x;
+	vout->y = vin->y - sub->y;
+	return vout;
+}
+
+t_v2*	v2_mul(t_v2* vin, float sx, float sy, t_v2* vout)
+{
+	vout->x = vin->x * sx;
+	vout->y = vin->y * sy;
+	return vout;
+}

@@ -21,24 +21,28 @@ typedef struct s_display
 {
 	GLFWwindow*	window;
 
-	int32		grid_vertex_buffer;
 
 	int32		hex_texture;
 
 	t_shader	memory_shader;	
+	int32		memory_grid_vertex_buffer;
+	int32		memory_grid_index_buffer;
 	int32		memory_vertex_buffer;
+
 	int32		memory_uniform_projection_matrix;
 	int32		memory_uniform_coord;
 	int32		memory_uniform_color;
 	int32		memory_uniform_texture;
+	int32		memory_vao;
+	int32		memory_vertex_count;
+	int32		memory_index_count;
+	
+	float		memory_width;
+	float		memory_height;
 
 	t_shader	io_shader;
 	int32		io_uniform_projection_matrix;
 	int32		io_uniform_color;
-
-	int32		memory_vao;
-	int32		memory_vertex_count;
-
 
 	int32		frame_buffer_width;
 	int32		frame_buffer_height;
@@ -48,8 +52,8 @@ typedef struct s_display
 	double		mouse_prev_y;
 
 	float		display_zoom;
-	float		display_offset_x;
-	float		display_offset_y;
+	float		display_center_x;
+	float		display_center_y;
 
 	double		frame_last_time;
 } t_display;
@@ -70,9 +74,13 @@ void display_generate_grid(t_display* display, int memory_size)
 	int32				x, y;
 	t_grid_vertex*		vb;
 	t_grid_vertex*		temp_vb;
-	int32				vb_size = (size + height) * 6 * sizeof(t_grid_vertex);
-
+	uint16*				ib;
+	uint16*				temp_ib;
+	int32				vb_size = (size + height) * 4 * sizeof(t_grid_vertex);
+	int32				ib_size = (size + height) * 6 * sizeof(int16);
+	int32				cell_index = 0;
 	temp_vb = vb = malloc(vb_size);
+	temp_ib = ib = malloc(ib_size);
 	for (y = 0; y < height + 1; ++y)
 	{
 		float yc = DISPLAY_CELL_SIZE * y;
@@ -83,23 +91,33 @@ void display_generate_grid(t_display* display, int memory_size)
 			float xn = xc + DISPLAY_CELL_SIZE;
 			v3_set(&vb->v, xc, yc, 0.f), vb->i = 0, vb++;
 			v3_set(&vb->v, xn, yc, 0.f), vb->i = 1, vb++;
+			v3_set(&vb->v, xc, yn, 0.f), vb->i = 2, vb++;
 			v3_set(&vb->v, xn, yn, 0.f), vb->i = 3, vb++;
 
-			v3_set(&vb->v, xc, yc, 0.f), vb->i = 0, vb++;
-			v3_set(&vb->v, xn, yn, 0.f), vb->i = 3, vb++;
-			v3_set(&vb->v, xc, yn, 0.f), vb->i = 2, vb++;
+			*ib++ = cell_index + 0;
+			*ib++ = cell_index + 1;
+			*ib++ = cell_index + 3;
+
+			*ib++ = cell_index + 0;
+			*ib++ = cell_index + 3;
+			*ib++ = cell_index + 2;
+			
+			cell_index += 4;
 		}
 	}
-
-	display->grid_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, vb_size, GL_STATIC_DRAW, temp_vb);
-	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 6, GL_STREAM_DRAW, NULL);	
-	display->memory_vertex_count = (size + height) * 6;
-
+	display->memory_grid_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, vb_size, GL_STATIC_DRAW, temp_vb);
+	display->memory_grid_index_buffer = display_gl_create_buffer(GL_ELEMENT_ARRAY_BUFFER, ib_size, GL_STATIC_DRAW, temp_ib);
+	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 4, GL_STREAM_DRAW, NULL);		
+	display->memory_vertex_count = (size + height) * 4;
+	display->memory_index_count = (size + height) * 6;
+	display->memory_width = DISPLAY_CELL_SIZE * width;
+	display->memory_height = DISPLAY_CELL_SIZE * height + 1;
 	free(temp_vb);
+	free(temp_ib);
 
 }
 
-t_display* display_initialize()
+t_display* display_initialize(int width, int height)
 {
 	t_display*			display = (t_display*)malloc(sizeof(t_display));
 
@@ -111,7 +129,7 @@ t_display* display_initialize()
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_FALSE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	display->window = glfwCreateWindow(640, 480, "Corewar", NULL, NULL);
+	display->window = glfwCreateWindow(width, height, "corewar", NULL, NULL);
 
 	glfwMakeContextCurrent(display->window);
 	glewExperimental = GL_TRUE;
@@ -119,9 +137,8 @@ t_display* display_initialize()
 
 	display_generate_grid(display, MEM_SIZE);
 	display->hex_texture = display_gl_load_texture("data/hex.png");
-	display_gl_load_shader(&display->memory_shader, "shaders/memory.vert", "shaders/memory.frag");
-	display_gl_load_shader(&display->io_shader, "shaders/io.vert", "shaders/io.frag");
 
+	display_gl_load_shader(&display->memory_shader, "shaders/memory.vert", "shaders/memory.frag");
 	display->memory_uniform_projection_matrix = glGetUniformLocation(display->memory_shader.id, "uni_ProjectionMatrix");
 	display->memory_uniform_coord = glGetUniformLocation(display->memory_shader.id, "uni_Coord");
 	display->memory_uniform_color = glGetUniformLocation(display->memory_shader.id, "uni_Color");
@@ -139,6 +156,7 @@ t_display* display_initialize()
 		glUseProgram(0);
 	}
 
+	display_gl_load_shader(&display->io_shader, "shaders/io.vert", "shaders/io.frag");
 	display->io_uniform_projection_matrix = glGetUniformLocation(display->io_shader.id, "uni_ProjectionMatrix");
 	display->io_uniform_color = glGetUniformLocation(display->io_shader.id, "uni_Color");
 
@@ -147,7 +165,7 @@ t_display* display_initialize()
 
 	glGenVertexArrays(1, &display->memory_vao);
 	glBindVertexArray(display->memory_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, display->grid_vertex_buffer);
+	glBindBuffer(GL_ARRAY_BUFFER, display->memory_grid_vertex_buffer);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (const void*)0);
 	
 	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
@@ -161,9 +179,17 @@ t_display* display_initialize()
 	glDisable(GL_DEPTH_TEST);
 
 	glfwGetCursorPos(display->window, &display->mouse_prev_x, &display->mouse_prev_y);
-	display->display_zoom = 1.0;
-	display->display_offset_x = 0;
-	display->display_offset_y = 0;
+	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
+
+	float screen_memory_ratio = display->memory_width / (float) display->frame_buffer_width;
+	float screen_memory_ratio_height = display->memory_height / (float) display->frame_buffer_height;
+	if (screen_memory_ratio_height > screen_memory_ratio)
+		screen_memory_ratio = screen_memory_ratio_height;
+
+	display->display_zoom = screen_memory_ratio;
+	display->display_center_x = ((float)display->frame_buffer_width * 0.5f) * screen_memory_ratio;
+	display->display_center_y = ((float)display->frame_buffer_height * 0.5f) * screen_memory_ratio;
+
 	display->frame_last_time = glfwGetTime();
 
 	return display;
@@ -177,9 +203,11 @@ int	 display_should_exit(t_display* display)
 void display_destroy(t_display* display)
 {
 	display_gl_destroy_buffer(display->memory_vertex_buffer);
-	display_gl_destroy_buffer(display->grid_vertex_buffer);
+	display_gl_destroy_buffer(display->memory_grid_vertex_buffer);
+	display_gl_destroy_buffer(display->memory_grid_index_buffer);
 	display_gl_destroy_texture(display->hex_texture);
 	display_gl_destroy_shader(&display->memory_shader);
+	display_gl_destroy_shader(&display->io_shader);
 	glDeleteVertexArrays(1, &display->memory_vao);
 	glfwDestroyWindow(display->window);
 	glfwTerminate();
@@ -200,21 +228,10 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 		*dst++ = v;
 		*dst++ = v;
 		*dst++ = v;
-
-		*dst++ = v;
-		*dst++ = v;
 		*dst++ = v;
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 }
-
-/*void	display_update_io(t_vm* , int size, t_display* display)
-{
-	while (size--)
-	{
-
-	}
-}*/
 
 int			display_key_pressed(t_display* display, int key)
 {
@@ -232,7 +249,8 @@ void display_render_memory(struct s_vm* vm, t_display* display, t_mat4* projecti
 
 	glBindTexture(GL_TEXTURE_2D, display->hex_texture);
 	glBindVertexArray(display->memory_vao);
-	glDrawArrays(GL_TRIANGLES, 0, display->memory_vertex_count);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 void display_render_io_read(struct s_vm* vm, t_display* display, t_mat4* projection)
@@ -250,25 +268,21 @@ void display_render_io_read(struct s_vm* vm, t_display* display, t_mat4* project
 		t_process* process = vm->processes[i];
 		for (j = 0; j < process->memory_read_op_count; ++j)
 		{
-			int index = process->memory_read_op[j] * 6;
+			int index = process->memory_read_op[j] * 4;
 			dst[index + 0]++;
 			dst[index + 1]++;
 			dst[index + 2]++;
 			dst[index + 3]++;
-			dst[index + 4]++;
-			dst[index + 5]++;
 		}
 	}
 	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(display->io_shader.id);
 	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
 	glUniform4fv(display->io_uniform_color, 1, color_io_read);
-	glBindVertexArray(display->memory_vao);
-	glDrawArrays(GL_TRIANGLES, 0, display->memory_vertex_count);
-
+	glBindVertexArray(display->memory_vao);	
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 void display_render_io_write(struct s_vm* vm, t_display* display, t_mat4* projection)
@@ -281,33 +295,32 @@ void display_render_io_write(struct s_vm* vm, t_display* display, t_mat4* projec
 	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
 	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
 	memset(dst, 0, size * 6);
+
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
 		for (j = 0; j < process->memory_write_op_count; ++j)
 		{
-			int index = process->memory_write_op[j] * 6;
+			int index = process->memory_write_op[j] * 4;
 			dst[index + 0]++;
 			dst[index + 1]++;
 			dst[index + 2]++;
 			dst[index + 3]++;
-			dst[index + 4]++;
-			dst[index + 5]++;
 		}
 	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(display->io_shader.id);
 	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
 	glUniform4fv(display->io_uniform_color, 1, color_io_write);
-	glDrawArrays(GL_TRIANGLES, 0, display->memory_vertex_count);	
+	glBindVertexArray(display->memory_vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 void display_render_io_process(struct s_vm* vm, t_display* display, t_mat4* projection)
 {
-	float	color_io_write[] = { 0.4f, 0.4f, 1.0f, 0.0f };
+	float	color_io_process[] = { 0.4f, 0.4f, 1.0f, 0.0f };
 	uint8*	dst;
 	int		size = vm->memory->size;
 	int		i;
@@ -318,22 +331,20 @@ void display_render_io_process(struct s_vm* vm, t_display* display, t_mat4* proj
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
-		int index = process->pc * 6;
+		int index = process->pc * 4;
 		dst[index + 0]++;
 		dst[index + 1]++;
 		dst[index + 2]++;
 		dst[index + 3]++;
-		dst[index + 4]++;
-		dst[index + 5]++;
 	}
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(display->io_shader.id);
 	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-	glUniform4fv(display->io_uniform_color, 1, color_io_write);
-	glDrawArrays(GL_TRIANGLES, 0, display->memory_vertex_count);
+	glUniform4fv(display->io_uniform_color, 1, color_io_process);
+	glBindVertexArray(display->memory_vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 int32 display_update_input(t_display* display)
@@ -341,9 +352,12 @@ int32 display_update_input(t_display* display)
 	int32 moved = 0;
 	double mouse_cur_x, mouse_cur_y;
 	double mouse_delta_x, mouse_delta_y;
-
+	
 	double current_time = glfwGetTime();
 	double delta = display->frame_last_time - current_time;
+
+	double framebuffer_center_x = (double)display->frame_buffer_width * 0.5f;
+	double framebuffer_center_y = (double)display->frame_buffer_height * 0.5f;
 
 	display->frame_last_time = current_time;
 
@@ -355,41 +369,66 @@ int32 display_update_input(t_display* display)
 	display->mouse_prev_x = mouse_cur_x;
 	display->mouse_prev_y = mouse_cur_y;
 
+
 	if (glfwGetKey(display->window, GLFW_KEY_Q) == GLFW_PRESS)
 		display->display_zoom += (float)delta, moved = 1;
-	if (glfwGetKey(display->window, GLFW_KEY_A) == GLFW_PRESS)
+
+	if (glfwGetKey(display->window, GLFW_KEY_A) == GLFW_PRESS)	
 		display->display_zoom -= (float)delta, moved = 1;
+
+	if (display->display_zoom < 0.01f)
+		display->display_zoom = 0.01f;
+
+	if (moved)
+	{
+		double mouse_target_center_x, mouse_target_center_y;
+
+		mouse_target_center_x = ((mouse_cur_x - framebuffer_center_x) / (double)display->frame_buffer_width) * 1.0f / display->display_zoom;
+		mouse_target_center_y = ((mouse_cur_y - framebuffer_center_y) / (double)display->frame_buffer_height) * 1.0f / display->display_zoom;
+		printf("=> %f %f\n", mouse_target_center_x, mouse_target_center_y);
+		display->display_center_x += (float)(mouse_target_center_x);
+		display->display_center_y += (float)(mouse_target_center_y);
+	}
+
 
 	if (glfwGetMouseButton(display->window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS)
 	{
-		display->display_offset_x += (float) mouse_delta_x * display->display_zoom;
-		display->display_offset_y += (float) mouse_delta_y * display->display_zoom;
+		display->display_center_x += (float) mouse_delta_x * display->display_zoom;
+		display->display_center_y += (float) mouse_delta_y * display->display_zoom;
 		moved = 1;
 	}
 	return moved;
 }
 
+void display_update_camera(t_display* display, t_mat4* view)
+{
+	float width = display->frame_buffer_width  * display->display_zoom * 0.5f;
+	float height = display->frame_buffer_height * display->display_zoom * 0.5f;
+
+	mat4_ident(view);
+
+	mat4_ortho(view,
+		display->display_center_x - width,
+		display->display_center_x + width,
+		display->display_center_y + height,
+		display->display_center_y - height, 
+		0.0f, 10.0f);
+}
+
 void display_step(struct s_vm* vm, t_display* display)
 {
-	float color_io_read[] = { 1, 0, 0, 1 };
-	float color_io_write[] = { 1, 0, 0, 1 };
-
 	t_mat4 mat;
 
-
 	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
-
-
-	
-	mat4_ident(&mat);
-	mat4_ortho(&mat, display->display_offset_x, display->display_offset_x + display->frame_buffer_width  * display->display_zoom,
-		display->display_offset_y + display->frame_buffer_height * display->display_zoom, display->display_offset_y, 0, 10);
-
 	display->frame_buffer_ratio = (float)display->frame_buffer_width / (float)display->frame_buffer_height;	
+
+	display_update_camera(display, &mat);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, display->frame_buffer_width, display->frame_buffer_height);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	display_render_memory(vm, display, &mat);
 
 	display_render_io_read(vm, display, &mat);

@@ -74,7 +74,7 @@ int main(int ac, char** av)
 	if (load_cores(vm, ac, av) <= 0)
 		return -1;
 
-	display = display_initialize();
+	display = display_initialize(800, 600);
 
 
 	if (1)
