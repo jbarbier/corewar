@@ -8,8 +8,9 @@
 typedef struct s_core
 {
 	t_header*	header;
-	int			id;
-	int			live_count;
+	int32		id;
+	int32		live_count;
+	int32		live_last_cycle;
 } t_core;
 
 int8*	core_get_code_ptr(struct s_core* core);

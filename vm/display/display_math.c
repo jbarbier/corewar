@@ -1,6 +1,45 @@
 #include <float.h>
 #include "display_math.h"
 
+float	mat4_det(t_mat4* in)
+{
+	return
+		in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[2][1] * in->mat.m[3][0] - in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[2][1] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[2][2] * in->mat.m[3][0] + in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[2][2] * in->mat.m[3][0] +
+		in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[2][0] * in->mat.m[3][1] + in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[2][0] * in->mat.m[3][1] +
+		in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[2][2] * in->mat.m[3][1] - in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[2][2] * in->mat.m[3][1] - in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[2][3] * in->mat.m[3][1] + in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[2][3] * in->mat.m[3][1] +
+		in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[2][0] * in->mat.m[3][2] - in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[2][0] * in->mat.m[3][2] - in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[2][1] * in->mat.m[3][2] + in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[2][1] * in->mat.m[3][2] +
+		in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[2][3] * in->mat.m[3][2] - in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[2][3] * in->mat.m[3][2] - in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[2][0] * in->mat.m[3][3] + in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[2][0] * in->mat.m[3][3] +
+		in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[2][1] * in->mat.m[3][3] - in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[2][1] * in->mat.m[3][3] - in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[2][2] * in->mat.m[3][3] + in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[2][2] * in->mat.m[3][3];
+}
+
+int	mat4_invert(t_mat4* in, t_mat4* out)
+{
+	float d = mat4_det(in);
+	if (d > FLT_EPSILON)
+	{
+		d = 1.0f / d;
+
+		out->mat.m[0][0] = d * (in->mat.m[1][2] * in->mat.m[2][3] * in->mat.m[3][1] - in->mat.m[1][3] * in->mat.m[2][2] * in->mat.m[3][1] + in->mat.m[1][3] * in->mat.m[2][1] * in->mat.m[3][2] - in->mat.m[1][1] * in->mat.m[2][3] * in->mat.m[3][2] - in->mat.m[1][2] * in->mat.m[2][1] * in->mat.m[3][3] + in->mat.m[1][1] * in->mat.m[2][2] * in->mat.m[3][3]);
+		out->mat.m[0][1] = d * (in->mat.m[0][3] * in->mat.m[2][2] * in->mat.m[3][1] - in->mat.m[0][2] * in->mat.m[2][3] * in->mat.m[3][1] - in->mat.m[0][3] * in->mat.m[2][1] * in->mat.m[3][2] + in->mat.m[0][1] * in->mat.m[2][3] * in->mat.m[3][2] + in->mat.m[0][2] * in->mat.m[2][1] * in->mat.m[3][3] - in->mat.m[0][1] * in->mat.m[2][2] * in->mat.m[3][3]);
+		out->mat.m[0][2] = d * (in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[3][1] - in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[3][1] + in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[3][2] - in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[3][2] - in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[3][3] + in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[3][3]);
+		out->mat.m[0][3] = d * (in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[2][1] - in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[2][1] - in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[2][2] + in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[2][2] + in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[2][3] - in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[2][3]);
+		out->mat.m[1][0] = d * (in->mat.m[1][3] * in->mat.m[2][2] * in->mat.m[3][0] - in->mat.m[1][2] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[1][3] * in->mat.m[2][0] * in->mat.m[3][2] + in->mat.m[1][0] * in->mat.m[2][3] * in->mat.m[3][2] + in->mat.m[1][2] * in->mat.m[2][0] * in->mat.m[3][3] - in->mat.m[1][0] * in->mat.m[2][2] * in->mat.m[3][3]);
+		out->mat.m[1][1] = d * (in->mat.m[0][2] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[2][2] * in->mat.m[3][0] + in->mat.m[0][3] * in->mat.m[2][0] * in->mat.m[3][2] - in->mat.m[0][0] * in->mat.m[2][3] * in->mat.m[3][2] - in->mat.m[0][2] * in->mat.m[2][0] * in->mat.m[3][3] + in->mat.m[0][0] * in->mat.m[2][2] * in->mat.m[3][3]);
+		out->mat.m[1][2] = d * (in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[3][0] - in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[3][2] + in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[3][2] + in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[3][3] - in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[3][3]);
+		out->mat.m[1][3] = d * (in->mat.m[0][2] * in->mat.m[1][3] * in->mat.m[2][0] - in->mat.m[0][3] * in->mat.m[1][2] * in->mat.m[2][0] + in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[2][2] - in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[2][2] - in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[2][3] + in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[2][3]);
+		out->mat.m[2][0] = d * (in->mat.m[1][1] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[1][3] * in->mat.m[2][1] * in->mat.m[3][0] + in->mat.m[1][3] * in->mat.m[2][0] * in->mat.m[3][1] - in->mat.m[1][0] * in->mat.m[2][3] * in->mat.m[3][1] - in->mat.m[1][1] * in->mat.m[2][0] * in->mat.m[3][3] + in->mat.m[1][0] * in->mat.m[2][1] * in->mat.m[3][3]);
+		out->mat.m[2][1] = d * (in->mat.m[0][3] * in->mat.m[2][1] * in->mat.m[3][0] - in->mat.m[0][1] * in->mat.m[2][3] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[2][0] * in->mat.m[3][1] + in->mat.m[0][0] * in->mat.m[2][3] * in->mat.m[3][1] + in->mat.m[0][1] * in->mat.m[2][0] * in->mat.m[3][3] - in->mat.m[0][0] * in->mat.m[2][1] * in->mat.m[3][3]);
+		out->mat.m[2][2] = d * (in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[3][0] - in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[3][0] + in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[3][1] - in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[3][1] - in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[3][3] + in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[3][3]);
+		out->mat.m[2][3] = d * (in->mat.m[0][3] * in->mat.m[1][1] * in->mat.m[2][0] - in->mat.m[0][1] * in->mat.m[1][3] * in->mat.m[2][0] - in->mat.m[0][3] * in->mat.m[1][0] * in->mat.m[2][1] + in->mat.m[0][0] * in->mat.m[1][3] * in->mat.m[2][1] + in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[2][3] - in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[2][3]);
+		out->mat.m[3][0] = d * (in->mat.m[1][2] * in->mat.m[2][1] * in->mat.m[3][0] - in->mat.m[1][1] * in->mat.m[2][2] * in->mat.m[3][0] - in->mat.m[1][2] * in->mat.m[2][0] * in->mat.m[3][1] + in->mat.m[1][0] * in->mat.m[2][2] * in->mat.m[3][1] + in->mat.m[1][1] * in->mat.m[2][0] * in->mat.m[3][2] - in->mat.m[1][0] * in->mat.m[2][1] * in->mat.m[3][2]);
+		out->mat.m[3][1] = d * (in->mat.m[0][1] * in->mat.m[2][2] * in->mat.m[3][0] - in->mat.m[0][2] * in->mat.m[2][1] * in->mat.m[3][0] + in->mat.m[0][2] * in->mat.m[2][0] * in->mat.m[3][1] - in->mat.m[0][0] * in->mat.m[2][2] * in->mat.m[3][1] - in->mat.m[0][1] * in->mat.m[2][0] * in->mat.m[3][2] + in->mat.m[0][0] * in->mat.m[2][1] * in->mat.m[3][2]);
+		out->mat.m[3][2] = d * (in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[3][0] - in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[3][0] - in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[3][1] + in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[3][1] + in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[3][2] - in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[3][2]);
+		out->mat.m[3][3] = d * (in->mat.m[0][1] * in->mat.m[1][2] * in->mat.m[2][0] - in->mat.m[0][2] * in->mat.m[1][1] * in->mat.m[2][0] + in->mat.m[0][2] * in->mat.m[1][0] * in->mat.m[2][1] - in->mat.m[0][0] * in->mat.m[1][2] * in->mat.m[2][1] - in->mat.m[0][1] * in->mat.m[1][0] * in->mat.m[2][2] + in->mat.m[0][0] * in->mat.m[1][1] * in->mat.m[2][2]);
+		return 1;
+	}
+	return 0;
+}
+
 void mat4_ident(t_mat4* mat)
 {
 	mat->mat.m[0][0] = 1; mat->mat.m[1][0] = 0; mat->mat.m[2][0] = 0; mat->mat.m[3][0] = 0;
@@ -61,14 +100,24 @@ t_v3* v3_set(t_v3* v, float x, float y, float z)
 	return v;
 }
 
+t_v4*	v4_set(t_v4* v, float x, float y, float z, float w)
+{
+	v->x = x;
+	v->y = y;
+	v->z = z;
+	v->w = w;
+
+	return v;
+}
+
 void mat4_x_v3(t_mat4* mat, t_v3* src, t_v3* dst)
 {
 	float x = src->x * mat->mat.m[0][0] + src->y * mat->mat.m[1][0] + src->z * mat->mat.m[2][0] + mat->mat.m[3][0];
 	float y = src->x * mat->mat.m[0][1] + src->y * mat->mat.m[1][1] + src->z * mat->mat.m[2][1] + mat->mat.m[3][1];
 	float z = src->x * mat->mat.m[0][2] + src->y * mat->mat.m[1][2] + src->z * mat->mat.m[2][2] + mat->mat.m[3][2];
 	dst->x = x;
-	dst->y = x;
-	dst->z = x;
+	dst->y = y;
+	dst->z = z;
 }
 
 

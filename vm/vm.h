@@ -57,6 +57,7 @@ typedef struct s_vm
 	struct s_memory*	memory;
 
 	int32		live_count;
+	int32		live_total;
 	int32		cycle_current;
 	int32		cycle_to_die;
 	int32		cycle_delta;

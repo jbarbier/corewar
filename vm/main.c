@@ -77,7 +77,7 @@ int main(int ac, char** av)
 	display = display_initialize(800, 600);
 
 
-	if (1)
+	if (0)
 	{
 		while (vm->process_count && !display_should_exit(display))
 		{
@@ -94,15 +94,9 @@ int main(int ac, char** av)
 					vm_reset_process_io_op(process);					
 					vm_execute(vm, process);
 					vm_get_opcode(vm, process);
-
-					if (vm->live_count >= NBR_LIVE)
-					{
-						vm->live_count = 0;
-						vm->cycle_to_die -= vm->cycle_delta;
-					}
 				}
 				else
-				process->cycle_wait--;
+					process->cycle_wait--;
 			}
 
 			if (vm->cycle_current > vm->cycle_to_die)

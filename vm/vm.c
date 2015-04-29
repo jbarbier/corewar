@@ -36,6 +36,7 @@ t_vm* vm_initialize()
 	vm->cycle_to_die = CYCLE_TO_DIE;
 	vm->cycle_delta = CYCLE_DELTA;
 	vm->live_count = 0;
+	vm->live_total = 0;
 	vm->process_count = 0;
 	vm->process_counter = 0;
 	vm->processes = (t_process**) malloc(sizeof(t_process*) * VM_MAX_PROCESSES);
@@ -50,8 +51,30 @@ t_vm* vm_initialize()
 	// core[0] is "unknown" core, used when player "live" with a unknown id.
 	vm->cores[vm->core_count] = malloc(sizeof(t_core));
 	vm->cores[vm->core_count++]->live_count = 0;
-
 	return vm;
+}
+
+void	vm_live(t_vm* vm, int32 id)
+{
+	int32 i;
+
+	vm->live_count++;
+
+	if ((vm->live_count % NBR_LIVE) == 0)
+		vm->cycle_to_die -= vm->cycle_delta;
+
+	for (i = 1; i < vm->core_count; ++i)
+	{
+		if (vm->cores[i]->id == id)
+		{
+			vm->cores[i]->live_count++;
+			vm->cores[i]->live_last_cycle = vm->cycle_current;
+			return;
+		}
+	}
+
+	vm->cores[0]->live_count++;
+	vm->cores[0]->live_last_cycle = vm->cycle_current;
 }
 
 t_op* vm_get_opcode(t_vm* vm, t_process* process)
@@ -65,7 +88,7 @@ t_op* vm_get_opcode(t_vm* vm, t_process* process)
 	process->current_opcode = temp;
 	process->cycle_wait = temp->nbr_cycles;
 	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
-	vm_debug_print_command(vm, process);
+	// vm_debug_print_command(vm, process);
 	return temp;
 }
 
@@ -224,9 +247,9 @@ int vm_execute(t_vm* vm, t_process* process)
 		switch (process->current_opcode->code)
 		{
 		case 1: // live		
-			vm->live_count++;
 			arg1 = read_int32_le(process->instruction + 1);
 			process->cycle_live = vm->cycle_current;
+			vm_live(vm, arg1);
 			process->pc = process->pc + 5;
 			break;
 		case 2: // ld

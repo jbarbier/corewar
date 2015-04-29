@@ -4,7 +4,8 @@
 #include "../../common/types.h"
 
 #define MESH_TYPE_VN	0
-#define MESH_TYPE_COUNT	1
+#define MEST_TYPE_V		1
+#define MESH_TYPE_COUNT 2
 
 struct s_mesh_definition
 {
