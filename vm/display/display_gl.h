@@ -22,5 +22,10 @@ int32	display_gl_create_buffer(int32 type, int32 size, int32 flags, void* data);
 int32	display_gl_load_texture(char* file_name);
 void	display_gl_destroy_texture(int32 id);
 void	display_gl_destroy_buffer(int32 id);
+void	display_gl_bind_buffer(int32 type, int32 id);
+
+int32	display_gl_create_vao();
+void	display_gl_bind_vao(int32 id);
+void	display_gl_destroy_vao(int32 id);
 
 #endif

@@ -13,8 +13,8 @@
 #include "display.h"
 #include "display_math.h"
 #include "display_gl.h"
-
-
+#include "display_mesh.h"
+#include "display_mesh_generator.h"
 
 
 typedef struct s_display
@@ -28,6 +28,7 @@ typedef struct s_display
 	int32		memory_grid_vertex_buffer;
 	int32		memory_grid_index_buffer;
 	int32		memory_vertex_buffer;
+	uint8*		memory_temp_buffer;
 
 	int32		memory_uniform_projection_matrix;
 	int32		memory_uniform_coord;
@@ -36,10 +37,10 @@ typedef struct s_display
 	int32		memory_vao;
 	int32		memory_vertex_count;
 	int32		memory_index_count;
-	
+	int32		memory_size;
 	float		memory_width;
 	float		memory_height;
-
+	int32		memory_stride;
 	t_shader	io_shader;
 	int32		io_uniform_projection_matrix;
 	int32		io_uniform_color;
@@ -56,6 +57,10 @@ typedef struct s_display
 	float		display_center_y;
 
 	double		frame_last_time;
+
+
+	t_display_mesh_renderer* mesh_renderer;
+	t_mesh*					 process_mesh;
 } t_display;
 
 
@@ -64,7 +69,13 @@ typedef struct s_grid_vertex
 {
 	t_v3	v;
 	float	i;
-} t_grid_vertex;
+}	t_grid_vertex;
+
+
+void display_generate_process_mesh(t_display* display)
+{
+
+}
 
 void display_generate_grid(t_display* display, int memory_size)
 {
@@ -108,10 +119,13 @@ void display_generate_grid(t_display* display, int memory_size)
 	display->memory_grid_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, vb_size, GL_STATIC_DRAW, temp_vb);
 	display->memory_grid_index_buffer = display_gl_create_buffer(GL_ELEMENT_ARRAY_BUFFER, ib_size, GL_STATIC_DRAW, temp_ib);
 	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 4, GL_STREAM_DRAW, NULL);		
+	display->memory_temp_buffer = (uint8*)malloc((size + height) * 4);	
 	display->memory_vertex_count = (size + height) * 4;
 	display->memory_index_count = (size + height) * 6;
+	display->memory_size = (size + height);
 	display->memory_width = DISPLAY_CELL_SIZE * width;
 	display->memory_height = DISPLAY_CELL_SIZE * height + 1;
+	display->memory_stride = width;
 	free(temp_vb);
 	free(temp_ib);
 
@@ -162,16 +176,12 @@ t_display* display_initialize(int width, int height)
 
 
 
-
-	glGenVertexArrays(1, &display->memory_vao);
-	glBindVertexArray(display->memory_vao);
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_grid_vertex_buffer);
+	display->memory_vao = display_gl_create_vao();
+	display_gl_bind_vao(display->memory_vao);
+	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_grid_vertex_buffer);
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (const void*)0);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
+	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
 	glVertexAttribPointer(1, 1, GL_UNSIGNED_BYTE, GL_FALSE, 1, (const void*)0);
-
-
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 
@@ -192,6 +202,18 @@ t_display* display_initialize(int width, int height)
 
 	display->frame_last_time = glfwGetTime();
 
+	display->mesh_renderer = display_mesh_renderer_initialize();
+	int32 vb_count;
+	int32 ib_count;
+	display_generate_sphere_count(16, &vb_count, &ib_count);
+	t_mesh_definition* def = display_mesh_get_definiton(MESH_TYPE_VN);
+	uint8*	vb = malloc(vb_count * def->stride);
+	uint16* ib = malloc(ib_count * sizeof(uint16));
+	t_v3 center = { 0, 0, 0};
+	display_generate_sphere(16, &center, DISPLAY_CELL_SIZE * 0.5f, vb, def, ib);
+	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
+	free(vb);
+	free(ib);
 	return display;
 }
 
@@ -202,14 +224,16 @@ int	 display_should_exit(t_display* display)
 
 void display_destroy(t_display* display)
 {
+	display_mesh_renderer_destroy(display->mesh_renderer);
 	display_gl_destroy_buffer(display->memory_vertex_buffer);
 	display_gl_destroy_buffer(display->memory_grid_vertex_buffer);
 	display_gl_destroy_buffer(display->memory_grid_index_buffer);
 	display_gl_destroy_texture(display->hex_texture);
 	display_gl_destroy_shader(&display->memory_shader);
-	display_gl_destroy_shader(&display->io_shader);
-	glDeleteVertexArrays(1, &display->memory_vao);
+	display_gl_destroy_shader(&display->io_shader);	
+	display_gl_destroy_vao(display->memory_vao);
 	glfwDestroyWindow(display->window);
+	free(display->memory_temp_buffer);
 	glfwTerminate();
 }
 
@@ -219,8 +243,10 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 	uint8*	src = (uint8*)vm->memory->data;
 	int		size = vm->memory->size;
 	
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
-	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);	
+	
+	dst = (uint8*)display->memory_temp_buffer; 
+	memset(dst, 0, display->memory_size * 4);
+
 	while (size--)
 	{
 		uint8 v = *src++;
@@ -230,13 +256,16 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 		*dst++ = v;
 		*dst++ = v;
 	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+	
+	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, display->memory_size * 4, display->memory_temp_buffer);
 }
 
 int			display_key_pressed(t_display* display, int key)
 {
 	return glfwGetKey(display->window, key) == GLFW_PRESS;
 }
+
 
 void display_render_memory(struct s_vm* vm, t_display* display, t_mat4* projection)
 {
@@ -248,8 +277,8 @@ void display_render_memory(struct s_vm* vm, t_display* display, t_mat4* projecti
 	glUniform4fv(display->memory_uniform_color, 1, color_mem);
 
 	glBindTexture(GL_TEXTURE_2D, display->hex_texture);
-	glBindVertexArray(display->memory_vao);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	display_gl_bind_vao(display->memory_vao);	
+	display_gl_bind_buffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
 	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
@@ -260,9 +289,8 @@ void display_render_io_read(struct s_vm* vm, t_display* display, t_mat4* project
 	uint8*  dst;
 	int		size = vm->memory->size;
 
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
-	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-	memset(dst, 0, size * 6);
+	dst = (uint8*)display->memory_temp_buffer;
+	memset(dst, 0, display->memory_size * 4);
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
@@ -275,13 +303,15 @@ void display_render_io_read(struct s_vm* vm, t_display* display, t_mat4* project
 			dst[index + 3]++;
 		}
 	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+
+	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, display->memory_size * 4, display->memory_temp_buffer);
 
 	glUseProgram(display->io_shader.id);
 	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
 	glUniform4fv(display->io_uniform_color, 1, color_io_read);
-	glBindVertexArray(display->memory_vao);	
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	display_gl_bind_vao(display->memory_vao);
+	display_gl_bind_buffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
 	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
@@ -292,9 +322,8 @@ void display_render_io_write(struct s_vm* vm, t_display* display, t_mat4* projec
 	int		size = vm->memory->size;
 	int		i, j;		
 
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
-	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-	memset(dst, 0, size * 6);
+	dst = (uint8*)display->memory_temp_buffer;
+	memset(dst, 0, display->memory_size * 4);
 
 	for (i = 0; i < vm->process_count; ++i)
 	{
@@ -308,43 +337,45 @@ void display_render_io_write(struct s_vm* vm, t_display* display, t_mat4* projec
 			dst[index + 3]++;
 		}
 	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
+
+	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, display->memory_size * 4, display->memory_temp_buffer);
 
 	glUseProgram(display->io_shader.id);
 	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
 	glUniform4fv(display->io_uniform_color, 1, color_io_write);
-	glBindVertexArray(display->memory_vao);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
+	display_gl_bind_vao(display->memory_vao);
+	display_gl_bind_buffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
 	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 void display_render_io_process(struct s_vm* vm, t_display* display, t_mat4* projection)
 {
-	float	color_io_process[] = { 0.4f, 0.4f, 1.0f, 0.0f };
-	uint8*	dst;
-	int		size = vm->memory->size;
+	t_v4	color_io_process = { 0.4f, 0.4f, 1.0f, 0.0f };
+	t_v4	color_ambient = { 0.2f, 0.2f, 0.2f, 1.0f };
+	t_v3	light_direction = { 0, 0, -1.0f };
+	t_mat4	local;
 	int		i;
 
-	glBindBuffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
-	dst = (uint8*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-	memset(dst, 0, size * 6);
+	display_mesh_render_start(display->mesh_renderer, MESH_TYPE_VN);
+	display_mesh_set_ambient(display->mesh_renderer, &color_ambient);
+	display_mesh_set_light_direction(display->mesh_renderer, &light_direction);
+	display_mesh_set_diffuse(display->mesh_renderer, &color_io_process);
+	display_mesh_set_projection(display->mesh_renderer, projection);
+	mat4_ident(&local);
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
-		int index = process->pc * 4;
-		dst[index + 0]++;
-		dst[index + 1]++;
-		dst[index + 2]++;
-		dst[index + 3]++;
+		int index = process->pc;
+		float x = index % display->memory_stride;
+		float y = index / display->memory_stride;
+		
+		x = x * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
+		y = y * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
+		mat4_translate(&local, x, y, DISPLAY_CELL_SIZE * 0.5f);
+		display_mesh_set_local(display->mesh_renderer, &local);
+		display_mesh_render(display->process_mesh);
 	}
-	glUnmapBuffer(GL_ARRAY_BUFFER);
-
-	glUseProgram(display->io_shader.id);
-	glUniformMatrix4fv(display->io_uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
-	glUniform4fv(display->io_uniform_color, 1, color_io_process);
-	glBindVertexArray(display->memory_vao);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
-	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
 int32 display_update_input(t_display* display)

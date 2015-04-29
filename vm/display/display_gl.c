@@ -117,6 +117,11 @@ int32 display_gl_load_texture(char* file_name)
 	return id;
 }
 
+void display_gl_bind_buffer(int32 type, int32 id)
+{
+	glBindBuffer(type, id);
+}
+
 void display_gl_destroy_texture(int32 id)
 {
 	glDeleteTextures(1, &id);
@@ -125,4 +130,21 @@ void display_gl_destroy_texture(int32 id)
 void display_gl_destroy_buffer(int32 id)
 {
 	glDeleteBuffers(1, &id);
+}
+
+void display_gl_bind_vao(int32 id)
+{
+	glBindVertexArray(id);
+}
+
+void display_gl_destroy_vao(int32 id)
+{
+	glDeleteVertexArrays(1, &id);
+}
+
+int32 display_gl_create_vao()
+{
+	int32 id;
+	glGenVertexArrays(1, &id);
+	return id;
 }
