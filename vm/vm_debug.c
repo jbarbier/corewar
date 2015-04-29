@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdarg.h>
+
+
 #include "vm.h"
 #include "vm_memory_io.h"
 #include "memory.h"
-#include "op.h"
 
 int32 vm_debug_read_value(t_process* process, int32* offset, int32 type)
 {

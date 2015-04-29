@@ -1,5 +1,6 @@
 #include <memory.h>
-#include "op.h"
+
+#include "../common/op.h"
 #include "vm.h"
 #include "memory.h"
 

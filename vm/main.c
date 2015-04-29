@@ -6,7 +6,7 @@
 #include "core.h"
 #include "vm.h"
 
-#include "display.h"
+#include "display/display.h"
 
 #define MAX_CORES	8
 struct s_core_load_informations

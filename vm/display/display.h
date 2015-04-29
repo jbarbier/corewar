@@ -1,8 +1,8 @@
 #ifndef DISPLAY_H
 #define DISPLAY_H
 
-#include 	"vm.h"
-#include	"types.h"
+
+#include	"../../common/types.h"
 
 
 #define DISPLAY_CELL_SIZE				10.f

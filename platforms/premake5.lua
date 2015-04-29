@@ -20,8 +20,7 @@ project "vm"
 	includedirs {"../externals/glfw/include",
 	"../externals/glew/include",
 	"../externals/glm",
-	"../externals/stb",
-	"../common"}
+	"../externals/stb"}
 
 	floatingpoint "Fast"
 	flags       { "Symbols" }

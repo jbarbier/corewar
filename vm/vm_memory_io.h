@@ -1,7 +1,7 @@
 #ifndef VM_MEMORY_H
 #define VM_MEMORY_H
 
-#include "types.h"
+#include "../common/types.h"
 
 struct s_vm;
 

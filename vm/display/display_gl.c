@@ -3,7 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include "display_gl.h"
-#include "../common/utils.h"
+
+#include "../../common/utils.h"
 
 void display_gl_log(int id, const char* desc, int is_shader)
 {

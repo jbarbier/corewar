@@ -2,16 +2,18 @@
 #include <GLFW/glfw3.h>
 #include <memory.h>
 #include <stb_image.h>
-
 #include <math.h>
 #include <stdlib.h>
+
+#include "../../common/utils.h"
+#include "../memory.h"
+#include "../vm.h"
+
+
 #include "display.h"
-#include "op.h"
-#include "memory.h"
-#include "vm.h"
-#include "../common/utils.h"
 #include "display_math.h"
 #include "display_gl.h"
+
 
 
 

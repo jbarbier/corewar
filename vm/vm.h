@@ -1,8 +1,8 @@
 #ifndef VM_H
 #define VM_H
 
-#include "types.h"
-#include "op.h"
+#include "../common/types.h"
+#include "../common/op.h"
 
 struct s_vm;
 struct s_op;

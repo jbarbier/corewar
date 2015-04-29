@@ -1,8 +1,9 @@
 #include <stdlib.h>
 #include <memory.h>
+
 #include "vm.h"
 #include "core.h"
-#include "op.h"
+
 
 t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 {

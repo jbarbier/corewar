@@ -1,7 +1,7 @@
 #ifndef DISPLAY_GL_H
 #define DISPLAY_GL_H
 
-#include "types.h"
+#include "../../common/types.h"
 
 typedef struct s_shader
 {

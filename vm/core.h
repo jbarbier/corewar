@@ -1,8 +1,8 @@
 #ifndef CORE_H
 #define CORE_H
 
-#include "types.h"
-#include "op.h"
+#include "../common/types.h"
+#include "../common/op.h"
 
 
 typedef struct s_core
