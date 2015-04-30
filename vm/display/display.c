@@ -15,7 +15,7 @@
 #include "display_gl.h"
 #include "display_mesh.h"
 #include "display_mesh_generator.h"
-
+#include "display_text.h"
 
 typedef struct s_display
 {
@@ -62,6 +62,7 @@ typedef struct s_display
 	t_display_mesh_renderer*	mesh_renderer;
 	t_mesh*						process_mesh;
 	t_mat4						projection_view;
+	t_display_text*				texts;
 } t_display;
 
 
@@ -72,11 +73,11 @@ typedef struct s_grid_vertex
 	float	i;
 }	t_grid_vertex;
 
-
-void display_generate_process_mesh(t_display* display)
+t_mat4*		display_get_projection_view(t_display* display)
 {
-
+	return &display->projection_view;
 }
+
 
 void display_generate_grid(t_display* display, int memory_size)
 {
@@ -215,6 +216,7 @@ t_display* display_initialize(int width, int height)
 	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
 	free(vb);
 	free(ib);
+	display->texts = display_text_intialize();
 	return display;
 }
 
@@ -233,6 +235,8 @@ void display_destroy(t_display* display)
 	display_gl_destroy_shader(&display->memory_shader);
 	display_gl_destroy_shader(&display->io_shader);	
 	display_gl_destroy_vao(display->memory_vao);
+	display_text_destroy(display->texts);
+
 	glfwDestroyWindow(display->window);
 	free(display->memory_temp_buffer);
 	glfwTerminate();
@@ -353,16 +357,15 @@ void display_render_io_write(struct s_vm* vm, t_display* display)
 void display_render_io_process(struct s_vm* vm, t_display* display)
 {
 	t_v4	color_io_process;
-	v4_set(&color_io_process, 0.4f, 0.4f, 1.0f, 0.0f);
-	
 	t_v4	color_ambient;
-	v4_set(&color_ambient, 0.2f, 0.2f, 0.2f, 1.0f);
-	
-	t_v3	light_direction = { 0, 0, -1.0f };
-	v3_set(&light_direction, 0, 0, -1.0f);
-	
+	t_v3	light_direction;
 	t_mat4	local;
 	int		i;
+
+	v4_set(&color_io_process, 0.4f, 0.4f, 1.0f, 0.0f);
+	v4_set(&color_ambient, 0.2f, 0.2f, 0.2f, 1.0f);
+	v3_set(&light_direction, 0, 0, -1.0f);
+
 
 	display_mesh_render_start(display->mesh_renderer, MESH_TYPE_VN);
 	display_mesh_set_ambient(display->mesh_renderer, &color_ambient);
@@ -458,10 +461,13 @@ void display_update_camera(t_display* display)
 
 void display_step(struct s_vm* vm, t_display* display)
 {
+	t_mat4 screen;
 
 	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
 	display->frame_buffer_ratio = (float)display->frame_buffer_width / (float)display->frame_buffer_height;	
 
+	mat4_ident(&screen);
+	mat4_ortho(&screen, 0, display->frame_buffer_width, display->frame_buffer_height, 0, 0, 10);
 	display_update_camera(display);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -476,7 +482,9 @@ void display_step(struct s_vm* vm, t_display* display)
 	display_render_io_read(vm, display);
 	display_render_io_write(vm, display);
 	display_render_io_process(vm, display);
+	display_text_add(display->texts, 0, 20, 0xff00ffff, "Rose !");
 
+	display_text_render(display->texts, &screen);
 	glfwSwapBuffers(display->window);
 	glfwPollEvents();
 	

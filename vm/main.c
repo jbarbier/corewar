@@ -77,7 +77,7 @@ int main(int ac, char** av)
 	display = display_initialize(800, 600);
 
 
-	if (0)
+	if (1)
 	{
 		while (vm->process_count && !display_should_exit(display))
 		{
