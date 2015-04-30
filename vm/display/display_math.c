@@ -1,6 +1,64 @@
 #include <float.h>
 #include "display_math.h"
 
+
+void	quat_from_euler(t_quat* out, float yaw, float pitch, float roll)
+{
+	float  mul = 0.5f;
+	float  p = pitch * mul;
+	float  y = yaw * mul;
+	float  r = roll * mul;
+
+	float sinp = sinf(p);
+	float siny = sinf(y);
+	float sinr = sinf(r);
+	float cosp = cosf(p);
+	float cosy = cosf(y);
+	float cosr = cosf(r);
+
+	out->x = cosr * cosp * siny - sinr * sinp * cosy;
+	out->y = cosr * sinp * cosy + sinr * cosp * siny;
+	out->z = sinr * cosp * cosy - cosr * sinp * siny;
+	out->w = cosr * cosp * cosy + sinr * sinp * siny;
+
+	quat_normalize(out);
+}
+
+void	quat_to_mat4(t_quat* in, t_mat4* out)
+{
+	// Calculate coefficients
+	float x2 = in->x + in->x, y2 = in->y + in->y, z2 = in->z + in->z;
+	float xx = in->x * x2, xy = in->x * y2, xz = in->x * z2;
+	float yy = in->y * y2, yz = in->y * z2, zz = in->z * z2;
+	float wx = in->w * x2, wy = in->w * y2, wz = in->w * z2;
+
+	out->mat.m[0][0] = 1 - (yy + zz);  out->mat.m[1][0] = xy - wz;
+	out->mat.m[2][0] = xz + wy;        out->mat.m[3][0] = 0;
+	out->mat.m[0][1] = xy + wz;        out->mat.m[1][1] = 1 - (xx + zz);
+	out->mat.m[2][1] = yz - wx;        out->mat.m[3][1] = 0;
+	out->mat.m[0][2] = xz - wy;        out->mat.m[1][2] = yz + wx;
+	out->mat.m[2][2] = 1 - (xx + yy);  out->mat.m[3][2] = 0;
+	out->mat.m[0][3] = 0;              out->mat.m[1][3] = 0;
+	out->mat.m[2][3] = 0;              out->mat.m[3][3] = 1;
+}
+
+
+void quat_normalize(t_quat* quat)
+{
+	float tolerance = (float)  0.00001;
+	float mag2 = quat->w * quat->w + quat->x * quat->x + quat->y * quat->y + quat->z * quat->z;
+
+	if (mag2 != 0 && (fabs(mag2 - 1.0f) > tolerance))
+	{
+		mag2 = sqrtf(mag2);
+		quat->w /= mag2;
+		quat->x /= mag2;
+		quat->y /= mag2;
+		quat->z /= mag2;
+	}
+}
+
+
 float	mat4_det(t_mat4* in)
 {
 	return

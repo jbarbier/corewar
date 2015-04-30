@@ -49,8 +49,8 @@ typedef struct s_process
 	int32			memory_read_op[PROCESS_MAX_READ_OP];
 	int32			memory_read_op_count;
 	int32			memory_write_op[PROCESS_MAX_WRITE_OP];
-	int32			memory_write_op_count;
-	int32			memory_live;
+	int32			memory_write_op_count;	
+	int32			cycle_create;
 } t_process;
 
 struct s_memory;

@@ -4,7 +4,7 @@
 #include <math.h>
 
 
-typedef struct s_v4
+struct s_v4
 {
 	float x;
 	float y;
@@ -13,20 +13,20 @@ typedef struct s_v4
 };
 
 
-typedef struct s_v3
+struct s_v3
 {
 	float x;
 	float y;
 	float z;
 };
 
-typedef struct s_v2
+struct s_v2
 {
 	float x;
 	float y;
 };
 
-typedef struct s_mat4
+struct s_mat4
 {
 	union
 	{
@@ -35,10 +35,17 @@ typedef struct s_mat4
 	} mat;
 };
 
+
 typedef struct s_v4 t_v4;
+typedef struct s_v4 t_quat;
+
 typedef struct s_v3 t_v3;
 typedef struct s_v2 t_v2;
 typedef struct s_mat4 t_mat4;
+
+void	quat_from_euler(t_quat* out, float yaw, float pitch, float rool);
+void	quat_normalize(t_quat* out);
+void	quat_to_mat4(t_quat* in, t_mat4* out);
 
 float	mat4_det(t_mat4* in);
 int		mat4_invert(t_mat4* in, t_mat4* out);

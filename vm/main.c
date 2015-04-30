@@ -95,7 +95,7 @@ int main(int ac, char** av)
 	int32			was_pressed = 0;
 	t_ring_buffer*	ring_buffer;
 
-	ring_buffer = ring_buffer_initialize(10, free);
+	ring_buffer = ring_buffer_initialize(20, free);
 
 	if (load_cores(vm, ac, av) <= 0)
 		return -1;

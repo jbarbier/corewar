@@ -57,7 +57,7 @@ typedef struct s_display
 	float		display_center_y;
 
 	double		frame_last_time;
-
+	double		frame_delta;
 
 	t_display_mesh_renderer*	mesh_renderer;
 	t_mesh*						process_mesh;
@@ -141,17 +141,36 @@ void		display_generate_process_mesh(t_display* display)
 	uint16* ib;
 	t_v3 center;
 	
-	v3_set(&center, 0.0f, 0.0f, 0.0f);
+	float radius = DISPLAY_CELL_SIZE * 0.25f;
+
 
 
 	t_mesh_definition* def = display_mesh_get_definiton(MESH_TYPE_VN);
-	display_generate_sphere_count(16, &vb_count, &ib_count);
-	vb = malloc(vb_count * def->stride);
-	ib = malloc(ib_count * sizeof(uint16));	
-	display_generate_sphere(16, &center, DISPLAY_CELL_SIZE * 0.5f, vb, def, ib, 0);
-	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
+	display_generate_sphere_count(8, &vb_count, &ib_count);
+
+	int32 vb_size = vb_count * def->stride;
+	int32 ib_size = ib_count;
+	vb = malloc(vb_size * 6);
+	ib = malloc(ib_size * sizeof(uint16) * 6);
+
+	v3_set(&center, radius, 0.0f, 0.0f);
+	display_generate_sphere(8, &center, radius * 0.5f, vb, def, ib, 0);
+	v3_set(&center, -radius, 0.0f, 0.0f);
+	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size, def, ib + ib_size, vb_count);
+	v3_set(&center, 0.0f, -radius, 0.0f);
+	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 2, def, ib + ib_size * 2, vb_count * 2);
+	v3_set(&center, 0.0f, radius, 0.0f);
+	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 3, def, ib + ib_size * 3, vb_count * 3);
+	v3_set(&center, 0.0f, 0.0f, -radius);
+	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 4, def, ib + ib_size * 4, vb_count * 4);
+	v3_set(&center, 0.0f, 0.0f, radius);
+	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 5, def, ib + ib_size * 5, vb_count * 5);
+
+	display->process_mesh = display_mesh_vn_create(vb, vb_count * 6, ib, ib_count * 6);
 	free(vb);
 	free(ib);
+
+
 
 }
 
@@ -373,6 +392,9 @@ void display_render_io_process(struct s_vm* vm, t_display* display)
 	t_v4	color_ambient;
 	t_v3	light_direction;
 	t_mat4	local;
+	t_mat4	translate;
+	t_mat4	rotation;
+	t_quat	quat;
 	int		i;
 
 	v4_set(&color_io_process, 0.4f, 0.4f, 1.0f, 0.0f);
@@ -386,17 +408,29 @@ void display_render_io_process(struct s_vm* vm, t_display* display)
 	display_mesh_set_diffuse(display->mesh_renderer, &color_io_process);
 	display_mesh_set_projection(display->mesh_renderer, &display->projection_view);
 	mat4_ident(&local);
+	
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
+		float angle = (float)process->cycle_create + (float)display->frame_last_time ;
+
 		int index = process->pc;
 		float x = (float) (index % display->memory_stride);
 		float y = (float) (index / display->memory_stride);
 		
 		x = x * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
 		y = y * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
-		mat4_translate(&local, x, y, DISPLAY_CELL_SIZE * 0.5f);
+		
+		mat4_ident(&translate);
+		mat4_translate(&translate, x, y, DISPLAY_CELL_SIZE * 0.5f);
+		
+		quat_from_euler(&quat, angle, angle, angle);
+		quat_to_mat4(&quat, &rotation);
+
+		mat4_mul(&translate, &rotation, &local);
+
 		display_mesh_set_local(display->mesh_renderer, &local);
+
 		display_mesh_render(display->process_mesh);
 	}
 }
@@ -409,7 +443,7 @@ int32 display_update_input(t_display* display)
 	
 	double current_time = glfwGetTime();
 	double delta = display->frame_last_time - current_time;
-
+	display->frame_delta = delta;
 	double framebuffer_center_x = (double)display->frame_buffer_width * 0.5f;
 	double framebuffer_center_y = (double)display->frame_buffer_height * 0.5f;
 
@@ -498,11 +532,11 @@ void display_step(struct s_vm* vm, t_display* display)
 
 	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
 	display->frame_buffer_ratio = (float)display->frame_buffer_width / (float)display->frame_buffer_height;	
-
+	
 	mat4_ident(&screen);
 	mat4_ortho(&screen, 0.0f, 
-		(float)display->frame_buffer_width * 0.5f, 
-		(float)display->frame_buffer_height * 0.5f,
+		(float)display->frame_buffer_width * 0.25f, 
+		(float)display->frame_buffer_height * 0.25f,
 		0.0f, 0.0f, 100.0f);
 	display_update_camera(display);
 

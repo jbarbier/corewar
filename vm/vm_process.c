@@ -27,6 +27,7 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 	process->memory_write_op_count = 0;
 	process->memory_read_op_count = 0;
 	process->cycle_wait = 0;	
+	process->cycle_create = vm->cycle_current;
 	vm->processes[vm->process_count++] = process;
 	vm_get_opcode(vm, process);
 	return process;
