@@ -160,7 +160,7 @@ static int stb_easy_font_draw_segs(float x, float y, unsigned char *segs, int nu
             float y0 = y + (float) (segs[i]>>4);
             for (j=0; j < 4; ++j) {
                 * (float *) (vbuf+offset+0) = x  + (j==1 || j==2 ? (vertical ? 1 : len) : 0);
-                * (float *) (vbuf+offset+4) = y0 + (    j >= 2   ? (vertical ? len : 1) : 0);
+				*(float *)(vbuf + offset + 4) = y0 + (j >= 2 ? (vertical ? len : 1) : 0);
                 * (float *) (vbuf+offset+8) = 0.f;
                 * (stb_easy_font_color *) (vbuf+offset+12) = c;
                 offset += 16;
@@ -176,6 +176,11 @@ static void stb_easy_font_spacing(float spacing)
    stb_easy_font_spacing_val = spacing;
 }
 
+float stb_easy_font_height()
+{
+	return 12.0f;
+}
+
 static int stb_easy_font_print(float x, float y, char *text, unsigned char color[4], void *vertex_buffer, int vbuf_size)
 {
     char *vbuf = (char *) vertex_buffer;
@@ -187,7 +192,7 @@ static int stb_easy_font_print(float x, float y, char *text, unsigned char color
 
     while (*text && offset < vbuf_size) {
         if (*text == '\n') {
-            y += 12;
+			y += stb_easy_font_height();
             x = start_x;
         } else {
             unsigned char advance = stb_easy_font_charinfo[*text-32].advance;
@@ -199,7 +204,7 @@ static int stb_easy_font_print(float x, float y, char *text, unsigned char color
             num_v = stb_easy_font_charinfo[*text-32+1].v_seg - v_seg;
             offset = stb_easy_font_draw_segs(x, y_ch, &stb_easy_font_hseg[h_seg], num_h, 0, c, vbuf, vbuf_size, offset);
             offset = stb_easy_font_draw_segs(x, y_ch, &stb_easy_font_vseg[v_seg], num_v, 1, c, vbuf, vbuf_size, offset);
-            x += advance & 15;
+            x += (advance & 15);
             x += stb_easy_font_spacing_val;
         }
         ++text;

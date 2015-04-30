@@ -7,7 +7,6 @@ uniform vec4	uni_Diffuse;
 in	vec3		in_Position;
 in	vec4		in_Color;
 
-out vec3		vertexShader_Normal;
 out vec4		vertexShader_Color;
 
 void main(void) 

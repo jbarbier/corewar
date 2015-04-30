@@ -149,7 +149,7 @@ t_mesh* display_mesh_v_create(void* vertices, int32 vertex_count, uint16* indice
 	t_mesh* mesh = malloc(sizeof(t_mesh));
 	mesh->count = index_count;
 	mesh->type = MESH_TYPE_V;
-	mesh->vb = display_gl_create_buffer(GL_ARRAY_BUFFER, vertex_count * sizeof(t_mesh_vn), GL_STATIC_DRAW, vertices);
+	mesh->vb = display_gl_create_buffer(GL_ARRAY_BUFFER, vertex_count * sizeof(t_mesh_v), GL_STATIC_DRAW, vertices);
 	mesh->ib = display_gl_create_buffer(GL_ELEMENT_ARRAY_BUFFER, index_count * sizeof(uint16), GL_STATIC_DRAW, indices);
 	mesh->vao = display_gl_create_vao();
 	display_gl_bind_vao(mesh->vao);
@@ -205,12 +205,12 @@ void display_mesh_set_projection(t_display_mesh_renderer* renderer, t_mat4* proj
 	glUniformMatrix4fv(renderer->current->uniform_projection_matrix, 1, GL_FALSE, projection->mat.v);
 }
 
-int32						display_mesh_get_ib(t_mesh* mesh)
+int32 display_mesh_get_ib(t_mesh* mesh)
 {
 	return mesh->ib;
 }
 
-int32						display_mesh_get_vb(t_mesh* mesh)
+int32 display_mesh_get_vb(t_mesh* mesh)
 {
 	return mesh->vb;
 }

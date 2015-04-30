@@ -37,35 +37,44 @@ char* vm_debug_get_param_desc(int32 type)
 	return "r";
 }
 
-void vm_printf(int32 max_size, char* format, ...)
+void vm_printf(t_vm* vm, int32 max_size, char* format, ...)
 {
-	va_list args;
-	char	buffer[256];
-	int32	size = 0;
+	if (vm->print_callback)
+	{
+		va_list args;
+		char	buffer[256];
+		int32	size = 0;
 
-	va_start(args, format);
-	size = vsprintf(buffer, format, args);
-	va_end(args);
-	size = max_size - size;
-	if (size < 0) size = 0;
-	printf("%s%*s", buffer, size, " ");
+		va_start(args, format);
+		size = vsprintf(buffer, format, args);
+		va_end(args);
+		size = max_size - size;
+		if (size > 0)
+		{
+			sprintf(buffer, "%s%*s", buffer, size, " ");
+		}
+
+		vm->print_callback(vm, buffer, vm->print_callback_userdata);
+	}
+
+
 }
 
-void vm_debug_print_process(t_process* process)
+void vm_debug_print_process(t_vm* vm, t_process* process)
 {
-	int i;
+	int32 i;
 
-	printf("-------------------------------------------------------------------------------\n");
-	printf("process %d\n", process->internal_id);
-	printf("pc=0x%0.8x (%d)\n", process->pc, process->pc);
-	printf("carry=%d\n", process->carry);
+	vm_printf(vm, 0, "-------------------------------------------------------------------------------\n");
+	vm_printf(vm, 0, "process %d\n", process->internal_id);
+	vm_printf(vm, 0, "pc=0x%0.8x (%d)\n", process->pc, process->pc);
+	vm_printf(vm, 0, "carry=%d\n", process->carry);
 	for (i = 0; i < REG_NUMBER; ++i)
 	{
-		vm_printf(4, "r%0.2d", i + 1, process->reg[i], process->reg[i]);
-		printf("= 0x%0.8x", process->reg[i]);
-		printf("(%d)\n", process->reg[i]);
+		vm_printf(vm, 4, "r%0.2d", i + 1, process->reg[i], process->reg[i]);
+		vm_printf(vm, 0, "= 0x%0.8x", process->reg[i]);
+		vm_printf(vm, 0, "(%d)\n", process->reg[i]);
 	}
-	printf("-------------------------------------------------------------------------------\n");
+	vm_printf(vm, 0, "-------------------------------------------------------------------------------\n");
 }
 
 void vm_debug_print_command(t_vm* vm, t_process* process)
@@ -77,19 +86,19 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 	int8 	encoding;
 	int32 	special = 0;
 
-	vm_printf(15, "%p(%d)", vm->memory->data + process->pc, process->internal_id);
+	vm_printf(vm, 15, "%p(%d)", vm->memory->data + process->pc, process->internal_id);
 	if (process->current_opcode->code)
 	{
-		vm_printf(8, "%s", process->current_opcode->mnemonique);
+		vm_printf(vm, 8, "%s", process->current_opcode->mnemonique);
 		switch (process->current_opcode->code)
 		{
 		case 1:
-			printf("%d", vm_debug_read_value(process, &offset, POC_DIR));
+			vm_printf(vm, 0, "%d", vm_debug_read_value(process, &offset, POC_DIR));
 			break;
 		case 9:
 		case 12:
 		case 15:
-			printf("%d", vm_debug_read_value(process, &offset, POC_IND));
+			vm_printf(vm, 0, "%d", vm_debug_read_value(process, &offset, POC_IND));
 			break;
 		case 10:
 		case 11:
@@ -103,16 +112,16 @@ void vm_debug_print_command(t_vm* vm, t_process* process)
 			{
 				type = (encoding >> offset_encoding) & 3;
 				if (special && type == POC_DIR) type = POC_IND;
-				printf("%s%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
+				vm_printf(vm, 0, "%s%d", vm_debug_get_param_desc(type), vm_debug_read_value(process, &offset, type));
 				offset_encoding -= 2;
 				if (i < (process->current_opcode->nbr_args - 1))
-					printf(",");
+					vm_printf(vm, 0, ",");
 			}
 			break;
 		}
 
-		printf("\n");
+		vm_printf(vm, 0, "\n");
 	}
 	else
-		printf("nop\n");
+		vm_printf(vm, 0, "nop\n");
 }

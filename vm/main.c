@@ -5,7 +5,7 @@
 #include "memory.h"
 #include "core.h"
 #include "vm.h"
-
+#include "../common/utils.h"
 #include "display/display.h"
 
 #define MAX_CORES	8
@@ -61,21 +61,47 @@ int load_cores(t_vm* vm, int ac, char** av)
 	return current_core;
 }
 
+void main_debug_print(t_vm* vm, char* string, t_ring_buffer* ring)
+{
+	char** last = (char**)ring_buffer_get_last(ring);
+	int need_concat = 0;
+	if (last)
+	{
+		int	  len = strlen(*last);
+		need_concat = ((*last)[len - 1] != '\n');
+	}
+
+	if (need_concat)
+	{
+		char* temp = malloc(strlen(*last) + strlen(string) + 1);
+		*temp = 0;
+		strcat(temp, *last);
+		strcat(temp, string);
+		free(*last);
+		*last = temp;
+	}
+	else
+		ring_buffer_add(ring, _strdup(string));
+}
+
+
 int main(int ac, char** av)
 {	
 	t_vm*		vm		= vm_initialize();
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
 	int32		i;
-	t_display*  display;
-	int32		update_display = 0;
-	int32		was_pressed = 0;
-	
+	t_display*		display;
+	int32			update_display = 0;
+	int32			was_pressed = 0;
+	t_ring_buffer*	ring_buffer;
+
+	ring_buffer = ring_buffer_initialize(10, free);
 
 	if (load_cores(vm, ac, av) <= 0)
 		return -1;
 
 	display = display_initialize(800, 600);
-
+	vm_set_print_callback(vm, main_debug_print, ring_buffer);
 
 	if (1)
 	{
@@ -108,7 +134,10 @@ int main(int ac, char** av)
 			vm_clean_dead_process(vm);
 //			update_display = 0;
 			if (display_update_input(display) || update_display == 0)
+			{
+				display_print_ring_buffer(display, 0, 0, ring_buffer);
 				display_step(vm, display);
+			}
 
 		}
 	}
@@ -142,7 +171,7 @@ int main(int ac, char** av)
 			{
 				t_process* process = vm->processes[i];
 				if (print_processes)
-					vm_debug_print_process(process);
+					vm_debug_print_process(vm, process);
 				if (execute_one)
 				{
 					if (process->cycle_wait <= 0)
@@ -177,7 +206,7 @@ int main(int ac, char** av)
 	}
 
 
-
+	ring_buffer_destroy(ring_buffer);
 	display_destroy(display);
 	vm_destroy(vm);
 }

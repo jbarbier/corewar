@@ -15,6 +15,13 @@
 #include "core.h"
 
 
+void vm_set_print_callback(t_vm* vm, t_vm_fct_print p, void* userdata)
+{
+	vm->print_callback = p;
+	vm->print_callback_userdata = userdata;
+}
+
+
 
 
 t_vm* vm_initialize()
@@ -51,6 +58,10 @@ t_vm* vm_initialize()
 	// core[0] is "unknown" core, used when player "live" with a unknown id.
 	vm->cores[vm->core_count] = malloc(sizeof(t_core));
 	vm->cores[vm->core_count++]->live_count = 0;
+
+	vm->print_callback_userdata = NULL;
+	vm->print_callback = NULL;
+
 	return vm;
 }
 
@@ -239,7 +250,7 @@ int vm_execute(t_vm* vm, t_process* process)
 	int32   offset = 2;
 	int32	arg1, arg2, arg3;	
 
-	/*vm_debug_print_command(vm, process);*/	
+	vm_debug_print_command(vm, process);
 	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
 	int32	ret = vm_opcode_check(process);
 	if (ret == VM_OK)

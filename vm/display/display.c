@@ -63,6 +63,7 @@ typedef struct s_display
 	t_mesh*						process_mesh;
 	t_mat4						projection_view;
 	t_display_text*				texts;
+
 } t_display;
 
 
@@ -132,6 +133,27 @@ void display_generate_grid(t_display* display, int memory_size)
 	free(temp_ib);
 
 }
+void		display_generate_process_mesh(t_display* display)
+{
+	int32	vb_count;
+	int32	ib_count;
+	uint8*	vb;
+	uint16* ib;
+	t_v3 center;
+	
+	v3_set(&center, 0.0f, 0.0f, 0.0f);
+
+
+	t_mesh_definition* def = display_mesh_get_definiton(MESH_TYPE_VN);
+	display_generate_sphere_count(16, &vb_count, &ib_count);
+	vb = malloc(vb_count * def->stride);
+	ib = malloc(ib_count * sizeof(uint16));	
+	display_generate_sphere(16, &center, DISPLAY_CELL_SIZE * 0.5f, vb, def, ib, 0);
+	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
+	free(vb);
+	free(ib);
+
+}
 
 t_display* display_initialize(int width, int height)
 {
@@ -190,6 +212,8 @@ t_display* display_initialize(int width, int height)
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_DEPTH_TEST);
 
+	display->mesh_renderer = display_mesh_renderer_initialize();
+
 	glfwGetCursorPos(display->window, &display->mouse_prev_x, &display->mouse_prev_y);
 	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
 
@@ -203,19 +227,7 @@ t_display* display_initialize(int width, int height)
 	display->display_center_y = ((float)display->frame_buffer_height * 0.5f) * screen_memory_ratio;
 
 	display->frame_last_time = glfwGetTime();
-
-	display->mesh_renderer = display_mesh_renderer_initialize();
-	int32 vb_count;
-	int32 ib_count;
-	display_generate_sphere_count(16, &vb_count, &ib_count);
-	t_mesh_definition* def = display_mesh_get_definiton(MESH_TYPE_VN);
-	uint8*	vb = malloc(vb_count * def->stride);
-	uint16* ib = malloc(ib_count * sizeof(uint16));
-	t_v3 center = { 0, 0, 0};
-	display_generate_sphere(16, &center, DISPLAY_CELL_SIZE * 0.5f, vb, def, ib, 0);
-	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
-	free(vb);
-	free(ib);
+	display_generate_process_mesh(display);
 	display->texts = display_text_intialize();
 	return display;
 }
@@ -354,6 +366,7 @@ void display_render_io_write(struct s_vm* vm, t_display* display)
 	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
 
+
 void display_render_io_process(struct s_vm* vm, t_display* display)
 {
 	t_v4	color_io_process;
@@ -426,10 +439,11 @@ int32 display_update_input(t_display* display)
 
 		float right = display->display_center_x + width;
 		float bottom  = display->display_center_y + height;
-
-		right = right - (float)mouse_cur_x * display->display_zoom;
-		bottom = bottom - (float)mouse_cur_y * display->display_zoom;
-
+		
+		float display_zoom = display->display_zoom;
+		right = right - (float)mouse_cur_x * display_zoom - display->display_center_x;
+		bottom = bottom - (float)mouse_cur_y * display_zoom - display->display_center_y;
+		
 		display->display_center_x += right * (float) delta;
 		display->display_center_y += bottom * (float) delta;
 	}
@@ -458,6 +472,25 @@ void display_update_camera(t_display* display)
 		display->display_center_y - height, 
 		0.0f, 100.0f);
 }
+float stb_easy_font_height();
+
+void display_print_ring_buffer(t_display* display, float x, float y, t_ring_buffer* buffer)
+{
+	int32 count = buffer->write_index;
+	int32 index = buffer->read_index;
+	if (count > buffer->size)
+		count = buffer->size;
+	int mul = 200 / count;
+	int color = 0xffffffff;
+	while (count--)
+	{
+		int alpha = (0xff - (count * mul)) << 24 | 0xffffff;
+		display_text_add(display->texts, x, y, color & alpha, buffer->data[index % buffer->size]);
+		index++;
+		y += stb_easy_font_height();
+	}
+
+}
 
 void display_step(struct s_vm* vm, t_display* display)
 {
@@ -467,24 +500,26 @@ void display_step(struct s_vm* vm, t_display* display)
 	display->frame_buffer_ratio = (float)display->frame_buffer_width / (float)display->frame_buffer_height;	
 
 	mat4_ident(&screen);
-	mat4_ortho(&screen, 0, display->frame_buffer_width, display->frame_buffer_height, 0, 0, 10);
+	mat4_ortho(&screen, 0.0f, 
+		(float)display->frame_buffer_width * 0.5f, 
+		(float)display->frame_buffer_height * 0.5f,
+		0.0f, 0.0f, 100.0f);
 	display_update_camera(display);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, display->frame_buffer_width, display->frame_buffer_height);
 	glEnable(GL_BLEND);
 	glDisable(GL_DEPTH_TEST);
-	glDisable(GL_ALPHA_TEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	display_render_memory(vm, display);
 
 	display_render_io_read(vm, display);
 	display_render_io_write(vm, display);
-	display_render_io_process(vm, display);
-	display_text_add(display->texts, 0, 20, 0xff00ffff, "Rose !");
+	display_render_io_process(vm, display);	
 
 	display_text_render(display->texts, &screen);
+	display_text_clear(display->texts);
 	glfwSwapBuffers(display->window);
 	glfwPollEvents();
 	

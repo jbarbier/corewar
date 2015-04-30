@@ -31,6 +31,9 @@ typedef void(*read_copy_t)(struct s_vm* mem, int32 offset, int32 size, int8* dst
 
 #define VM_OK			1
 
+struct s_vm;
+typedef void(*t_vm_fct_print)(struct s_vm* vm, char* string, void* userdata);
+
 typedef struct s_process
 {
 	int32			pc;
@@ -52,7 +55,8 @@ typedef struct s_process
 
 struct s_memory;
 
-typedef struct s_vm
+
+struct s_vm
 {
 	struct s_memory*	memory;
 
@@ -84,8 +88,13 @@ typedef struct s_vm
 	int32			core_count;
 
 	int32			dump_to_cycle;
-} t_vm;
 
+	t_vm_fct_print	print_callback;
+	void*			print_callback_userdata;
+
+};
+
+typedef struct s_vm t_vm;
 //////////////////////////////////////////////////////////////////////////
 // in vm_process.c
 void		vm_kill_process_if_no_live(t_vm* vm);
@@ -97,9 +106,14 @@ void		vm_reset_process_io_op(t_process* process);
 //////////////////////////////////////////////////////////////////////////
 // in vm_debug.c
 void		vm_debug_print_command(t_vm* vm, t_process* process);
-void		vm_debug_print_process(t_process* process);
+void		vm_debug_print_process(t_vm* vm, t_process* process);
+
+
 //////////////////////////////////////////////////////////////////////////
 // in vm.c
+
+void		vm_set_print_callback(t_vm* vm, t_vm_fct_print p, void* userdata);
+
 t_vm*		vm_initialize();
 void		vm_destroy(t_vm* vm);
 t_op*		vm_get_opcode(t_vm* vm, t_process* process);
