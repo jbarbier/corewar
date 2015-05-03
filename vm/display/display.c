@@ -1,4 +1,5 @@
 #include <GL/glew.h>
+#include <GL/wglew.h>
 #include <GLFW/glfw3.h>
 #include <memory.h>
 #include <stb_image.h>
@@ -248,6 +249,9 @@ t_display* display_initialize(int width, int height)
 	display->frame_last_time = glfwGetTime();
 	display_generate_process_mesh(display);
 	display->texts = display_text_intialize();
+
+	if (WGL_EXT_swap_control_tear)
+		glfwSwapInterval(-1);
 	return display;
 }
 
@@ -550,8 +554,9 @@ void display_step(struct s_vm* vm, t_display* display)
 
 	display_render_io_read(vm, display);
 	display_render_io_write(vm, display);
-	display_render_io_process(vm, display);	
-
+	glDisable(GL_BLEND);
+	display_render_io_process(vm, display);
+	glEnable(GL_BLEND);
 	display_text_render(display->texts, &screen);
 	display_text_clear(display->texts);
 	glfwSwapBuffers(display->window);
