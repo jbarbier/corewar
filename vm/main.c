@@ -95,7 +95,7 @@ int main(int ac, char** av)
 	int32			was_pressed = 0;
 	t_ring_buffer*	ring_buffer;
 
-	ring_buffer = ring_buffer_initialize(20, free);
+	ring_buffer = ring_buffer_initialize(10, free);
 
 	if (load_cores(vm, ac, av) <= 0)
 		return -1;
@@ -118,7 +118,8 @@ int main(int ac, char** av)
 					update_display = 0;
 					
 					vm_reset_process_io_op(process);					
-					vm_execute(vm, process);
+					if (process->current_opcode)
+						vm_execute(vm, process);
 					vm_get_opcode(vm, process);
 				}
 				else

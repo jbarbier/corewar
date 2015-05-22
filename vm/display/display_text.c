@@ -118,10 +118,19 @@ void			display_text_render(t_display_text* texts, t_mat4* projection_view)
 	v4_set(&color_ambient, 0.0f, 0.0f, 0.0f, 0.0f);
 	mat4_ident(&local);
 
+
 	for (i = 0; i < texts->text_count; ++i)
 	{
 		t_text* text = &(texts->texts[i]);
-		vb_index += stb_easy_font_print(text->position.x, text->position.y, text->text, (uint8*)&text->rgba, texts->text_mesh_vb + vb_index, texts->text_mesh_vb_size) * 64;
+		int32 alpha = 64 + (i * 192) / texts->text_count;
+		int32 rgba = text->rgba & 0x00ffffff | alpha << 24;
+	
+		vb_index += stb_easy_font_print(text->position.x, 
+			text->position.y, 
+			text->text, 
+			(uint8*)&rgba, 
+			texts->text_mesh_vb + vb_index, 
+			texts->text_mesh_vb_size) * 64;
 	}
 	display_gl_bind_buffer(GL_ARRAY_BUFFER, display_mesh_get_vb(texts->text_mesh));
 	glBufferSubData(GL_ARRAY_BUFFER, 0, vb_index, texts->text_mesh_vb);

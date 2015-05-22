@@ -518,6 +518,8 @@ void display_print_ring_buffer(t_display* display, float x, float y, t_ring_buff
 	int32 index = buffer->read_index;
 	if (count > buffer->size)
 		count = buffer->size;
+	if (count <= 0)
+		return;
 	int mul = 200 / count;
 	int color = 0xffffffff;
 	while (count--)
@@ -541,7 +543,7 @@ void display_step(struct s_vm* vm, t_display* display)
 	mat4_ortho(&screen, 0.0f, 
 		(float)display->frame_buffer_width * 0.25f, 
 		(float)display->frame_buffer_height * 0.25f,
-		0.0f, 0.0f, 100.0f);
+		0.0f, -100.0f, 100.0f);
 	display_update_camera(display);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
