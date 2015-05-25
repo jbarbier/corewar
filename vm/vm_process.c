@@ -26,8 +26,9 @@ t_process*	vm_create_process(t_vm* vm, t_process* parent, int32 pc)
 	process->cycle_live = vm->cycle_current;
 	process->memory_write_op_count = 0;
 	process->memory_read_op_count = 0;
-	process->cycle_wait = 0;	
+	process->cycle_wait = 0;
 	process->cycle_create = vm->cycle_current;
+	process->jump = 0;
 	vm->processes[vm->process_count++] = process;
 	vm_get_opcode(vm, process);
 	return process;
@@ -37,6 +38,7 @@ void	vm_reset_process_io_op(t_process* process)
 {
 	process->memory_read_op_count = 0;
 	process->memory_write_op_count = 0;
+	process->jump = 0;
 }
 
 void vm_clean_dead_process(t_vm* vm)
@@ -83,7 +85,7 @@ void	vm_kill_process_if_no_live(t_vm* vm)
 	for (; i < vm->process_count; ++i)
 	{
 		if (vm->processes[i]->cycle_live == 0)
-		{			
+		{
 			vm_destroy_process(vm, vm->processes[i]);
 		}
 		else

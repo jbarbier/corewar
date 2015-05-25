@@ -13,7 +13,7 @@ struct s_core_load_informations
 {
 	int32	address;
 	int32	have_address;
-	int32	id;	
+	int32	id;
 	char*	file_name;
 	t_core*	core;
 };
@@ -45,24 +45,25 @@ int load_cores(t_vm* vm, int ac, char** av)
 			t_core* core = core_load_from_file(av[i]);
 			if (core)
 				infos[current_core++].core = core;
-		}			
+		}
 	}
 
-	
+
 	for (i = 0; i < current_core; ++i)
 	{
 		if (!infos[i].have_address)
 			infos[i].address = (MEM_SIZE / current_core) * i;
-		
+
 		while (infos[i].address < 0) infos[i].address += MEM_SIZE;
-		vm_add_core(vm, infos[i].core, infos[i].id, infos[i].address % MEM_SIZE);		
+		vm_add_core(vm, infos[i].core, infos[i].id, infos[i].address % MEM_SIZE);
 	}
-	
+
 	return current_core;
 }
 
-void main_debug_print(t_vm* vm, char* string, t_ring_buffer* ring)
+void main_debug_print(t_vm* vm, char* string, void* user_data)
 {
+	t_ring_buffer* ring = (t_ring_buffer*) user_data;
 	char** last = (char**)ring_buffer_get_last(ring);
 	int need_concat = 0;
 	if (last)
@@ -86,7 +87,7 @@ void main_debug_print(t_vm* vm, char* string, t_ring_buffer* ring)
 
 
 int main(int ac, char** av)
-{	
+{
 	t_vm*		vm		= vm_initialize();
 	t_process*	process = (t_process*) malloc(sizeof(t_process));
 	int32		i;
@@ -116,8 +117,8 @@ int main(int ac, char** av)
 				if (process->cycle_wait <= 0)
 				{
 					update_display = 0;
-					
-					vm_reset_process_io_op(process);					
+
+					vm_reset_process_io_op(process);
 					if (process->current_opcode)
 						vm_execute(vm, process);
 					vm_get_opcode(vm, process);
@@ -165,7 +166,7 @@ int main(int ac, char** av)
 				execute_one = previous_keys_state[GLFW_KEY_S] && !current_keys_state[GLFW_KEY_S];
 			print_processes = previous_keys_state[GLFW_KEY_P] && !current_keys_state[GLFW_KEY_P];
 			memcpy(previous_keys_state, current_keys_state, sizeof(int32) * GLFW_KEY_LAST);
-			
+
 			if (execute_one)
 				vm->cycle_current++;
 			for (i = 0; i < vm->process_count; ++i)

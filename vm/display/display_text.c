@@ -44,7 +44,7 @@ t_display_text* display_text_intialize()
 
 	text->text_count = 0;
 	text->text_renderer = display_mesh_renderer_initialize();
-	
+
 	size = MAX_TEXT * MAX_TEXT_LEN * 6;
 	temp = ib = malloc(size * sizeof(uint16));
 	start = 0;
@@ -83,8 +83,14 @@ void			display_text_clear(t_display_text* texts)
 void			display_text_destroy(t_display_text* texts)
 {
 	int32 i;
-	for (i = 0; i < texts->text_count; ++i)
-		free(texts->texts[i % MAX_TEXT].text);
+	int32 count = MAX_TEXT;
+
+	if (count > texts->text_count)
+		count = texts->text_count;
+
+	for (i = 0; i < count; ++i)
+		free(texts->texts[i].text);
+
 	free(texts->text_mesh_vb);
 	free(texts);
 }
@@ -98,7 +104,7 @@ void			display_text_add(t_display_text* texts, float x, float y, int32 rgba, cha
 	va_start(args, format);
 	size = vsnprintf(buffer, MAX_TEXT_LEN, format, args);
 	va_end(args);
-	
+
 	texts->texts[texts->text_count % MAX_TEXT].text = buffer;
 	texts->texts[texts->text_count % MAX_TEXT].rgba = rgba;
 	texts->texts[texts->text_count % MAX_TEXT].position.x = x;
@@ -123,13 +129,13 @@ void			display_text_render(t_display_text* texts, t_mat4* projection_view)
 	{
 		t_text* text = &(texts->texts[i]);
 		int32 alpha = 64 + (i * 192) / texts->text_count;
-		int32 rgba = text->rgba & 0x00ffffff | alpha << 24;
-	
-		vb_index += stb_easy_font_print(text->position.x, 
-			text->position.y, 
-			text->text, 
-			(uint8*)&rgba, 
-			texts->text_mesh_vb + vb_index, 
+		int32 rgba = (text->rgba & 0x00ffffff) | alpha << 24;
+
+		vb_index += stb_easy_font_print(text->position.x,
+			text->position.y,
+			text->text,
+			(uint8*)&rgba,
+			texts->text_mesh_vb + vb_index,
 			texts->text_mesh_vb_size) * 64;
 	}
 	display_gl_bind_buffer(GL_ARRAY_BUFFER, display_mesh_get_vb(texts->text_mesh));

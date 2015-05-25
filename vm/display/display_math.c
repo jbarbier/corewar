@@ -144,7 +144,7 @@ t_mat4*	mat4_mul(t_mat4* mat, t_mat4* with, t_mat4* out)
 	out->mat.v[12] = mat->mat.v[0] * with->mat.v[12] + mat->mat.v[4] * with->mat.v[13] + mat->mat.v[8] * with->mat.v[14] + mat->mat.v[12] * with->mat.v[15];
 	out->mat.v[13] = mat->mat.v[1] * with->mat.v[12] + mat->mat.v[5] * with->mat.v[13] + mat->mat.v[9] * with->mat.v[14] + mat->mat.v[13] * with->mat.v[15];
 	out->mat.v[14] = mat->mat.v[2] * with->mat.v[12] + mat->mat.v[6] * with->mat.v[13] + mat->mat.v[10] * with->mat.v[14] + mat->mat.v[14] * with->mat.v[15];
-	out->mat.v[15] = mat->mat.v[3] * with->mat.v[12] + mat->mat.v[7] * with->mat.v[13] + mat->mat.v[11] * with->mat.v[14] + mat->mat.v[15] * with->mat.v[15];	
+	out->mat.v[15] = mat->mat.v[3] * with->mat.v[12] + mat->mat.v[7] * with->mat.v[13] + mat->mat.v[11] * with->mat.v[14] + mat->mat.v[15] * with->mat.v[15];
 	return out;
 }
 
@@ -207,6 +207,25 @@ t_v2*	v2_mul(t_v2* vin, float sx, float sy, t_v2* vout)
 	return vout;
 }
 
+
+t_v3* v3_cross(t_v3* a, t_v3* b, t_v3* out)
+{
+	out->x = a->y * b->z - b->y * a->z;
+	out->y = a->z * b->x - b->z * a->x;
+	out->z = a->x * b->y - b->x * a->y;
+
+	return out;
+}
+
+t_v3* v3_sub(t_v3* a, t_v3* b, t_v3* out)
+{
+	out->x = a->x - b->x;
+	out->y = a->y - b->y;
+	out->z = a->z - b->z;
+
+	return out;
+}
+
 t_v3*	v3_norm(t_v3* vin, t_v3* vout)
 {
 	float v = sqrtf(vin->x * vin->x + vin->y * vin->y + vin->z * vin->z);
@@ -217,7 +236,7 @@ t_v3*	v3_norm(t_v3* vin, t_v3* vout)
 	vout->x = vin->x / d;
 	vout->y = vin->y / d;
 	vout->z = vin->z / d;
-	
+
 	return vout;
 }
 
@@ -226,6 +245,6 @@ t_v3*	v3_add(t_v3* vin, t_v3* add, t_v3* vout)
 	vout->x = vin->x + add->x;
 	vout->y = vin->y + add->y;
 	vout->z = vin->z + add->z;
-	
+
 	return vout;
 }

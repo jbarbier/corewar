@@ -1,12 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#if defined(_WIN32)
-#	include <io.h>
-#else
-#define	_write write
-#endif
-
+#include "../common/utils.h"
 #include <memory.h>
 #include "memory.h"
 #include "vm.h"
@@ -48,13 +43,13 @@ t_vm* vm_initialize()
 	vm->process_counter = 0;
 	vm->processes = (t_process**) malloc(sizeof(t_process*) * VM_MAX_PROCESSES);
 	vm->process_count = 0;
-		
+
 	vm->processes_pool = (t_process**)malloc(sizeof(t_process*) * VM_MAX_PROCESSES);
 	vm->process_pool_count = 0;
 
 	vm->core_count = 0;
 	vm->cores = (t_core**)malloc(sizeof(t_core*) * VM_MAX_CORES + 1);
-	
+
 	// core[0] is "unknown" core, used when player "live" with a unknown id.
 	vm->cores[vm->core_count] = malloc(sizeof(t_core));
 	vm->cores[vm->core_count++]->live_count = 0;
@@ -105,7 +100,7 @@ t_op* vm_get_opcode(t_vm* vm, t_process* process)
 
 void vm_destroy(t_vm* vm)
 {
-	int32 i = 0; 	
+	int32 i = 0;
 	memory_destroy(vm->memory);
 	for (; i < vm->process_count; ++i)
 		if (!vm->processes[i]->free)
@@ -114,11 +109,11 @@ void vm_destroy(t_vm* vm)
 		free(vm->processes_pool[i]);
 	for (i = 0; i < vm->core_count; ++i)
 		core_destroy(vm->cores[i]);
-	
+
 	free(vm->cores);
 	free(vm->processes);
 	free(vm->processes_pool);
-	
+
 	free(vm);
 }
 
@@ -126,7 +121,7 @@ void vm_destroy(t_vm* vm)
 int32 vm_read_value(t_vm* vm, t_process* process, int32* offset, int32 type, int32 mod, int32 dir_as_16)
 {
 	int32 ret;
-	
+
 	if (type == POC_DIR)
 	{
 		if (dir_as_16)
@@ -147,11 +142,11 @@ int32 vm_read_value(t_vm* vm, t_process* process, int32* offset, int32 type, int
 		*offset += 2;
 	}
 	else
-	{		
+	{
 		ret = process->reg[process->instruction[*offset] - 1];
 		*offset += 1;
 	}
-	
+
 	return ret;
 }
 
@@ -165,7 +160,7 @@ int32 vm_read_register(t_vm* vm, t_process* process, int32* offset)
 int32 vm_write_value_mod(t_vm* vm, t_process* process, int32* offset, int32 type, int32 value)
 {
 	int32 ret;
-	
+
 	if (type == POC_IND)
 	{
 		ret = read_int16_le(process->instruction + *offset);
@@ -177,7 +172,7 @@ int32 vm_write_value_mod(t_vm* vm, t_process* process, int32* offset, int32 type
 		ret = process->instruction[*offset] - 1;
 		process->reg[ret] = value;
 		*offset += 1;
-	}	
+	}
 	return ret;
 }
 
@@ -211,7 +206,7 @@ int32 vm_opcode_check(t_process* process)
 {
 	int32 i = 0;
 	int32 code = process->current_opcode->code;
-	
+
 	if ( (code == 1) || (code == 9) || (code == 12) || (code == 15) )
 		return VM_OK;
 	int32 special = (code == 10) || (code == 11) || (code == 14);
@@ -222,33 +217,33 @@ int32 vm_opcode_check(t_process* process)
 		int32 type = TYPE(process->instruction[1], i + 1);
 		if ((type & process->current_opcode->type[i]) == 0)
 			return VM_ERROR_ENCODING;
-		
+
 		if (special && type == POC_DIR)
 			type = POC_IND;
-		
+
 		if (type == POC_IND)
 			offset += 2;
 		else if (type == POC_DIR)
 			offset += 4;
 		else
 		{
-			if (process->instruction[offset] < 0 
+			if (process->instruction[offset] < 0
 				|| process->instruction[offset] > REG_NUMBER)
 				return VM_ERROR_REGISTER;
 			offset++;
 		}
 
 	}
-	
+
 	return VM_OK;
 }
 
 
 int vm_execute(t_vm* vm, t_process* process)
 {
-	int8	encoding;	
+	int8	encoding;
 	int32   offset = 2;
-	int32	arg1, arg2, arg3;	
+	int32	arg1, arg2, arg3;
 
 	vm_debug_print_command(vm, process);
 	vm->read_copy(vm, process->pc, PROCESS_INSTRUCTION_BUFFER_SIZE, process->instruction);
@@ -257,7 +252,7 @@ int vm_execute(t_vm* vm, t_process* process)
 	{
 		switch (process->current_opcode->code)
 		{
-		case 1: // live		
+		case 1: // live
 			arg1 = read_int32_le(process->instruction + 1);
 			process->cycle_live = vm->cycle_current;
 			vm_live(vm, arg1);
@@ -270,12 +265,12 @@ int vm_execute(t_vm* vm, t_process* process)
 
 			process->reg[arg2] = arg1;
 			process->carry = (arg1 == 0);
-			process->pc = process->pc + offset;			
+			process->pc = process->pc + offset;
 			break;
 		case 3: // st
 			encoding = read_int8_le(process->instruction + 1);
 			arg1 = vm_read_value(vm, process, &offset, TYPE_1(encoding), IDX_MOD, 0);
-			arg2 = vm_write_value_mod(vm, process, &offset, TYPE_2(encoding), arg1);			
+			arg2 = vm_write_value_mod(vm, process, &offset, TYPE_2(encoding), arg1);
 			process->pc = process->pc + offset;
 			break;
 
@@ -286,7 +281,7 @@ int vm_execute(t_vm* vm, t_process* process)
 			arg3 = vm_read_register(vm, process, &offset);
 
 			process->reg[arg3] = arg1 + arg2;
-			process->carry = (process->reg[arg3] == 0);			
+			process->carry = (process->reg[arg3] == 0);
 			process->pc = process->pc + offset;
 			break;
 		case 5: // sub
@@ -331,10 +326,13 @@ int vm_execute(t_vm* vm, t_process* process)
 			break;
 		case 9: // zjmp
 			arg1 = read_int16_le(process->instruction + 1);
+			process->jump = 1;
+			process->jump_from = process->pc;
 			if (process->carry)
 				process->pc = process->pc + arg1 % IDX_MOD;
 			else
 				process->pc = process->pc + 3;
+			process->jump_to = process->pc;
 			break;
 
 		case 10: // ldi

@@ -41,17 +41,16 @@ typedef struct s_display_mesh_shader
 	int32		uniform_light_direction;
 	int32		uniform_local_matrix;
 	int32		uniform_ambient;
-};
-typedef struct s_display_mesh_shader t_display_mesh_shader;
+} t_display_mesh_shader;
 
-struct s_display_mesh_renderer
+
+typedef struct s_display_mesh_renderer
 {
 	t_display_mesh_shader	type[MESH_TYPE_COUNT];
 	t_display_mesh_shader*	current;
-};
+} t_display_mesh_renderer;
 
-typedef struct s_display_mesh_renderer  t_display_mesh_renderer;
-static t_mesh_definition	s_definition_table[] = 
+static t_mesh_definition	s_definition_table[] =
 {
 	{ 0, 3 * sizeof(float), -1, 6 * sizeof(float)} ,
 	{ 0, -1, -1, 3 * sizeof(float) },
@@ -97,11 +96,12 @@ t_display_mesh_renderer* display_mesh_renderer_initialize()
 
 void	display_mesh_renderer_destroy(t_display_mesh_renderer* renderer)
 {
-	for (int i = 0; i < MESH_TYPE_COUNT; ++i)
+	int i;
+	for (i = 0; i < MESH_TYPE_COUNT; ++i)
 	{
 		display_gl_destroy_shader(&renderer->type[i].shader);
 	}
-	
+
 	free(renderer);
 }
 
@@ -224,4 +224,3 @@ void display_mesh_set_light_direction(t_display_mesh_renderer* renderer, t_v3* d
 {
 	glUniform3fv(renderer->current->uniform_light_direction, 1, (float*) direction);
 }
-

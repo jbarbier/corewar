@@ -56,12 +56,17 @@ void	mat4_translate(t_mat4* mat, float x, float y, float z);
 t_mat4*	mat4_mul(t_mat4* mat, t_mat4* with, t_mat4* out);
 
 t_v3*	v3_set(t_v3* v, float x, float y, float z);
+t_v3* v3_sub(t_v3* a, t_v3* b, t_v3* out);
+t_v3*	v3_norm(t_v3* vin, t_v3* vout);
+t_v3*	v3_add(t_v3* vin, t_v3* add, t_v3* vout);
+t_v3* v3_cross(t_v3* a, t_v3* b, t_v3* out);
+
 t_v2*	v2_set(t_v2* v, float x, float y);
 t_v2*	v2_add(t_v2* vin, t_v2* add, t_v2* vout);
 t_v2*	v2_sub(t_v2* vin, t_v2* sub, t_v2* vout);
 t_v2*	v2_mul(t_v2* vin, float sx, float sy, t_v2* vout);
-t_v3*	v3_norm(t_v3* vin, t_v3* vout);
-t_v3*	v3_add(t_v3* vin, t_v3* add, t_v3* vout);
+
+
 t_v4*	v4_set(t_v4* v, float x, float y, float z, float w);
 #define DISPLAY_M_PI       3.14159265358979f
 

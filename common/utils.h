@@ -1,17 +1,20 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#	include <fcntl.h>
+#include <fcntl.h>
+
 #if defined(_WIN32)
 #	include <io.h>
 #	define OPEN_MODE O_RDONLY | O_BINARY
 #else
+#	include <unistd.h>
 #	define OPEN_MODE O_RDONLY
+#	define	_write write
 #	define _open open
 #	define _read read
 #	define _close close
 #	define _lseek lseek
-#	define _strdup strdup;
+#	define _strdup strdup
 #endif
 
 char* file_to_memory(char* file_name, int* size);
@@ -25,7 +28,7 @@ struct s_ring_buffer
 	int					write_index;
 	void**				data;
 	t_ring_fct_free		free_element_fct;
-	
+
 };
 typedef struct s_ring_buffer t_ring_buffer;
 

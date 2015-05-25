@@ -1,5 +1,7 @@
 #include <GL/glew.h>
-#include <GL/wglew.h>
+#if defined(_WIN32)
+#	include <GL/wglew.h>
+#endif
 #include <GLFW/glfw3.h>
 #include <memory.h>
 #include <stb_image.h>
@@ -23,47 +25,47 @@ typedef struct s_display
 	GLFWwindow*	window;
 
 
-	int32		hex_texture;
+	int32			hex_texture;
 
-	t_shader	memory_shader;	
-	int32		memory_grid_vertex_buffer;
-	int32		memory_grid_index_buffer;
-	int32		memory_vertex_buffer;
+	t_shader	memory_shader;
+	int32			memory_grid_vertex_buffer;
+	int32			memory_grid_index_buffer;
+	int32			memory_vertex_buffer;
 	uint8*		memory_temp_buffer;
 
-	int32		memory_uniform_projection_matrix;
-	int32		memory_uniform_coord;
-	int32		memory_uniform_color;
-	int32		memory_uniform_texture;
-	int32		memory_vao;
-	int32		memory_vertex_count;
-	int32		memory_index_count;
-	int32		memory_size;
-	float		memory_width;
-	float		memory_height;
-	int32		memory_stride;
+	int32			memory_uniform_projection_matrix;
+	int32			memory_uniform_coord;
+	int32			memory_uniform_color;
+	int32			memory_uniform_texture;
+	int32			memory_vao;
+	int32			memory_vertex_count;
+	int32			memory_index_count;
+	int32			memory_size;
+	float			memory_width;
+	float			memory_height;
+	int32			memory_stride;
 	t_shader	io_shader;
-	int32		io_uniform_projection_matrix;
-	int32		io_uniform_color;
+	int32			io_uniform_projection_matrix;
+	int32			io_uniform_color;
 
-	int32		frame_buffer_width;
-	int32		frame_buffer_height;
-	float		frame_buffer_ratio;
+	int32			frame_buffer_width;
+	int32			frame_buffer_height;
+	float			frame_buffer_ratio;
 
 	double		mouse_prev_x;
 	double		mouse_prev_y;
 
-	float		display_zoom;
-	float		display_center_x;
-	float		display_center_y;
+	float			display_zoom;
+	float			display_center_x;
+	float			display_center_y;
 
 	double		frame_last_time;
 	double		frame_delta;
 
 	t_display_mesh_renderer*	mesh_renderer;
-	t_mesh*						process_mesh;
-	t_mat4						projection_view;
-	t_display_text*				texts;
+	t_mesh*										process_mesh;
+	t_mat4										projection_view;
+	t_display_text*						texts;
 
 } t_display;
 
@@ -83,17 +85,18 @@ t_mat4*		display_get_projection_view(t_display* display)
 
 void display_generate_grid(t_display* display, int memory_size)
 {
-	int32				width = (int32)roundf(sqrtf(MEM_SIZE));
-	int32				height = width;
-	int32				size = width * height;
-	int32				x, y;
-	t_grid_vertex*		vb;
-	t_grid_vertex*		temp_vb;
-	uint16*				ib;
-	uint16*				temp_ib;
-	int32				vb_size = (size + height) * 4 * sizeof(t_grid_vertex);
-	int32				ib_size = (size + height) * 6 * sizeof(int16);
-	int32				cell_index = 0;
+	int32						width = (int32)roundf(sqrtf(MEM_SIZE));
+	int32						height = width;
+	int32						size = width * height;
+	int32						x, y;
+	t_grid_vertex*	vb;
+	t_grid_vertex*	temp_vb;
+	uint16*					ib;
+	uint16*					temp_ib;
+	int32						vb_size = (size + height) * 4 * sizeof(t_grid_vertex);
+	int32						ib_size = (size + height) * 6 * sizeof(int16);
+	int32						cell_index = 0;
+
 	temp_vb = vb = malloc(vb_size);
 	temp_ib = ib = malloc(ib_size);
 	for (y = 0; y < height + 1; ++y)
@@ -116,14 +119,14 @@ void display_generate_grid(t_display* display, int memory_size)
 			*ib++ = cell_index + 0;
 			*ib++ = cell_index + 3;
 			*ib++ = cell_index + 2;
-			
+
 			cell_index += 4;
 		}
 	}
 	display->memory_grid_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, vb_size, GL_STATIC_DRAW, temp_vb);
 	display->memory_grid_index_buffer = display_gl_create_buffer(GL_ELEMENT_ARRAY_BUFFER, ib_size, GL_STATIC_DRAW, temp_ib);
-	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 4, GL_STREAM_DRAW, NULL);		
-	display->memory_temp_buffer = (uint8*)malloc((size + height) * 4);	
+	display->memory_vertex_buffer = display_gl_create_buffer(GL_ARRAY_BUFFER, (size + height) * 4, GL_STREAM_DRAW, NULL);
+	display->memory_temp_buffer = (uint8*)malloc((size + height) * 4);
 	display->memory_vertex_count = (size + height) * 4;
 	display->memory_index_count = (size + height) * 6;
 	display->memory_size = (size + height);
@@ -136,27 +139,28 @@ void display_generate_grid(t_display* display, int memory_size)
 }
 void		display_generate_process_mesh(t_display* display)
 {
-	int32	vb_count;
-	int32	ib_count;
+	int32		vb_count;
+	int32		ib_count;
 	uint8*	vb;
 	uint16* ib;
-	t_v3 center;
-	
-	float radius = DISPLAY_CELL_SIZE * 0.25f;
-
-
-
-	t_mesh_definition* def = display_mesh_get_definiton(MESH_TYPE_VN);
-	display_generate_sphere_count(8, &vb_count, &ib_count);
-
+	t_v3 		center;
+	float 	radius = DISPLAY_CELL_SIZE * 0.25f;
+	t_mesh_definition* def;
 	int32 vb_size = vb_count * def->stride;
 	int32 ib_size = ib_count;
+
+	def = display_mesh_get_definiton(MESH_TYPE_VN);
+	display_generate_sphere_count(8, &vb_count, &ib_count);
+
+	vb_size = vb_count * def->stride;
+	ib_size = ib_count;
+
 	vb = malloc(vb_size * 6);
 	ib = malloc(ib_size * sizeof(uint16) * 6);
 
 	v3_set(&center, radius, 0.0f, 0.0f);
 	display_generate_sphere(8, &center, radius * 0.5f, vb, def, ib, 0);
-	v3_set(&center, -radius, 0.0f, 0.0f);
+	/*v3_set(&center, -radius, 0.0f, 0.0f);
 	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size, def, ib + ib_size, vb_count);
 	v3_set(&center, 0.0f, -radius, 0.0f);
 	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 2, def, ib + ib_size * 2, vb_count * 2);
@@ -166,8 +170,8 @@ void		display_generate_process_mesh(t_display* display)
 	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 4, def, ib + ib_size * 4, vb_count * 4);
 	v3_set(&center, 0.0f, 0.0f, radius);
 	display_generate_sphere(8, &center, radius * 0.5f, vb + vb_size * 5, def, ib + ib_size * 5, vb_count * 5);
-
-	display->process_mesh = display_mesh_vn_create(vb, vb_count * 6, ib, ib_count * 6);
+*/
+	display->process_mesh = display_mesh_vn_create(vb, vb_count, ib, ib_count);
 	free(vb);
 	free(ib);
 
@@ -250,8 +254,7 @@ t_display* display_initialize(int width, int height)
 	display_generate_process_mesh(display);
 	display->texts = display_text_intialize();
 
-	if (WGL_EXT_swap_control_tear)
-		glfwSwapInterval(-1);
+	glfwSwapInterval(-1);
 	return display;
 }
 
@@ -268,7 +271,7 @@ void display_destroy(t_display* display)
 	display_gl_destroy_buffer(display->memory_grid_index_buffer);
 	display_gl_destroy_texture(display->hex_texture);
 	display_gl_destroy_shader(&display->memory_shader);
-	display_gl_destroy_shader(&display->io_shader);	
+	display_gl_destroy_shader(&display->io_shader);
 	display_gl_destroy_vao(display->memory_vao);
 	display_text_destroy(display->texts);
 
@@ -282,9 +285,9 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 	uint8* dst;
 	uint8*	src = (uint8*)vm->memory->data;
 	int		size = vm->memory->size;
-	
-	
-	dst = (uint8*)display->memory_temp_buffer; 
+
+
+	dst = (uint8*)display->memory_temp_buffer;
 	memset(dst, 0, display->memory_size * 4);
 
 	while (size--)
@@ -296,7 +299,7 @@ void display_update_memory(struct s_vm* vm, t_display* display)
 		*dst++ = v;
 		*dst++ = v;
 	}
-	
+
 	display_gl_bind_buffer(GL_ARRAY_BUFFER, display->memory_vertex_buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, display->memory_size * 4, display->memory_temp_buffer);
 }
@@ -317,7 +320,7 @@ void display_render_memory(struct s_vm* vm, t_display* display)
 	glUniform4fv(display->memory_uniform_color, 1, color_mem);
 
 	glBindTexture(GL_TEXTURE_2D, display->hex_texture);
-	display_gl_bind_vao(display->memory_vao);	
+	display_gl_bind_vao(display->memory_vao);
 	display_gl_bind_buffer(GL_ELEMENT_ARRAY_BUFFER, display->memory_grid_index_buffer);
 	glDrawElements(GL_TRIANGLES, display->memory_index_count, GL_UNSIGNED_SHORT, 0);
 }
@@ -360,7 +363,7 @@ void display_render_io_write(struct s_vm* vm, t_display* display)
 	float	color_io_write[] = { 0.4f, 1.0f, 0.4f, 0.0f };
 	uint8*	dst;
 	int		size = vm->memory->size;
-	int		i, j;		
+	int		i, j;
 
 	dst = (uint8*)display->memory_temp_buffer;
 	memset(dst, 0, display->memory_size * 4);
@@ -412,7 +415,7 @@ void display_render_io_process(struct s_vm* vm, t_display* display)
 	display_mesh_set_diffuse(display->mesh_renderer, &color_io_process);
 	display_mesh_set_projection(display->mesh_renderer, &display->projection_view);
 	mat4_ident(&local);
-	
+
 	for (i = 0; i < vm->process_count; ++i)
 	{
 		t_process* process = vm->processes[i];
@@ -421,13 +424,13 @@ void display_render_io_process(struct s_vm* vm, t_display* display)
 		int index = process->pc;
 		float x = (float) (index % display->memory_stride);
 		float y = (float) (index / display->memory_stride);
-		
+
 		x = x * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
 		y = y * DISPLAY_CELL_SIZE + DISPLAY_CELL_SIZE * 0.5f;
-		
+
 		mat4_ident(&translate);
 		mat4_translate(&translate, x, y, DISPLAY_CELL_SIZE * 0.5f);
-		
+
 		quat_from_euler(&quat, angle, angle, angle);
 		quat_to_mat4(&quat, &rotation);
 
@@ -444,7 +447,7 @@ int32 display_update_input(t_display* display)
 	int32 moved = 0;
 	double mouse_cur_x, mouse_cur_y;
 	double mouse_delta_x, mouse_delta_y;
-	
+
 	double current_time = glfwGetTime();
 	double delta = display->frame_last_time - current_time;
 	display->frame_delta = delta;
@@ -464,7 +467,7 @@ int32 display_update_input(t_display* display)
 	if (glfwGetKey(display->window, GLFW_KEY_Q) == GLFW_PRESS)
 		display->display_zoom += (float)delta, moved = 1;
 
-	if (glfwGetKey(display->window, GLFW_KEY_A) == GLFW_PRESS)	
+	if (glfwGetKey(display->window, GLFW_KEY_A) == GLFW_PRESS)
 		display->display_zoom -= (float)delta, moved = 1;
 
 	if (display->display_zoom < 0.01f)
@@ -477,11 +480,11 @@ int32 display_update_input(t_display* display)
 
 		float right = display->display_center_x + width;
 		float bottom  = display->display_center_y + height;
-		
+
 		float display_zoom = display->display_zoom;
 		right = right - (float)mouse_cur_x * display_zoom - display->display_center_x;
 		bottom = bottom - (float)mouse_cur_y * display_zoom - display->display_center_y;
-		
+
 		display->display_center_x += right * (float) delta;
 		display->display_center_y += bottom * (float) delta;
 	}
@@ -507,7 +510,7 @@ void display_update_camera(t_display* display)
 		display->display_center_x - width,
 		display->display_center_x + width,
 		display->display_center_y + height,
-		display->display_center_y - height, 
+		display->display_center_y - height,
 		0.0f, 100.0f);
 }
 float stb_easy_font_height();
@@ -537,11 +540,12 @@ void display_step(struct s_vm* vm, t_display* display)
 	t_mat4 screen;
 
 	glfwGetFramebufferSize(display->window, &display->frame_buffer_width, &display->frame_buffer_height);
-	display->frame_buffer_ratio = (float)display->frame_buffer_width / (float)display->frame_buffer_height;	
-	
+	display->frame_buffer_ratio =
+	(float)display->frame_buffer_width / (float)display->frame_buffer_height;
+
 	mat4_ident(&screen);
-	mat4_ortho(&screen, 0.0f, 
-		(float)display->frame_buffer_width * 0.25f, 
+	mat4_ortho(&screen, 0.0f,
+		(float)display->frame_buffer_width * 0.25f,
 		(float)display->frame_buffer_height * 0.25f,
 		0.0f, -100.0f, 100.0f);
 	display_update_camera(display);
@@ -559,9 +563,9 @@ void display_step(struct s_vm* vm, t_display* display)
 	glDisable(GL_BLEND);
 	display_render_io_process(vm, display);
 	glEnable(GL_BLEND);
-	display_text_render(display->texts, &screen);
-	display_text_clear(display->texts);
+	// display_text_render(display->texts, &screen);
+	// display_text_clear(display->texts);
 	glfwSwapBuffers(display->window);
 	glfwPollEvents();
-	
+
 }

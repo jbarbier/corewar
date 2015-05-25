@@ -2,6 +2,8 @@
 #include <stdarg.h>
 
 
+#include "../common/utils.h"
+
 #include "vm.h"
 #include "vm_memory_io.h"
 #include "memory.h"

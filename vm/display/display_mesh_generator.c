@@ -26,7 +26,8 @@ void display_generate_rect(int subDiv, t_v3* min, t_v3* max, float sphere_radius
 	{
 		t_v3* v = (t_v3*)(vb + def->vertex_offset);
 		t_v3* n = (t_v3*)(vb + def->normal_offset);
-		v3_set(v, *vsp++, *vsp++, *vsp++);
+		v3_set(v, *vsp, *(vsp + 1), *(vsp + 2));
+		vsp += 3;
 		if (def->normal_offset != -1)
 			v3_set(n, 0.0f, 0.0f, 1.0f);
 		vb += def->stride;
@@ -41,6 +42,50 @@ void display_generate_rect(int subDiv, t_v3* min, t_v3* max, float sphere_radius
 	*ib++ = start + 2;
 }
 
+
+void display_generate_line(int subDiv, t_v3* min, t_v3* max, float sphere_radius, uint8* vb, t_mesh_definition* def, uint16* ib, uint16 start)
+{
+	t_v3 direction;
+	t_v3 normal;
+
+	v3_set(&normal, 0, 0, 1);
+	v3_sub(max, min, &direction);
+	v3_norm(&direction, &direction);
+	v3_cross(&direction, &normal, &normal);
+
+	normal.x *= sphere_radius;
+	normal.y *= sphere_radius;
+	normal.z *= sphere_radius;
+
+	float  vs[] = {
+		min->x - normal.x, min->y - normal.y, min->z,
+		min->x + normal.x, min->y + normal.y, min->z,
+		max->x - normal.x, max->y - normal.y, max->z,
+		max->x + normal.x, max->y + normal.y, max->z,
+	};
+
+	float* vsp = vs;
+	int32 i;
+
+	for (i = 0; i < 4; ++i)
+	{
+		t_v3* v = (t_v3*)(vb + def->vertex_offset);
+		t_v3* n = (t_v3*)(vb + def->normal_offset);
+		v3_set(v, *vsp, *(vsp + 1), *(vsp + 2));
+		vsp += 3;
+		if (def->normal_offset != -1)
+			v3_set(n, 0.0f, 0.0f, 1.0f);
+		vb += def->stride;
+	}
+
+	*ib++ = start + 0;
+	*ib++ = start + 1;
+	*ib++ = start + 3;
+
+	*ib++ = start + 0;
+	*ib++ = start + 3;
+	*ib++ = start + 2;
+}
 
 
 void display_generate_sphere_count(int32 subDiv, int32* vertex_count, int32* index_count)
@@ -60,10 +105,10 @@ void display_generate_sphere(int subDiv, t_v3* center, float sphere_radius, uint
 		{
 			float phi = (float)j / subDiv;
 			float radius = sinf(theta * pi) * sphere_radius;
-			
+
 			t_v3*	v = (t_v3*)(vb + def->vertex_offset);
 			t_v3*	n = (t_v3*)(vb + def->normal_offset);
-			
+
 			v->x = sinf(phi * 2.0f * pi) * radius;
 			v->y = cosf(phi * 2.0f * pi) * radius;
 			v->z = cosf(theta * pi) * sphere_radius;
@@ -88,5 +133,3 @@ void display_generate_sphere(int subDiv, t_v3* center, float sphere_radius, uint
 		}
 	}
 }
-
-
